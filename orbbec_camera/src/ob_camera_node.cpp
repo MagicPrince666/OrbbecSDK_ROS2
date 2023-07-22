@@ -311,7 +311,7 @@ void OBCameraNode::setupDefaultImageFormat() {
   format_str_[INFRA0] = "Y16";
   image_format_[INFRA0] = CV_16UC1;
   encoding_[INFRA0] = sensor_msgs::image_encodings::MONO16;
-  unit_step_size_[INFRA0] = sizeof(uint8_t);
+  unit_step_size_[INFRA0] = sizeof(uint16_t);
 
   image_format_[COLOR] = CV_8UC3;
   encoding_[COLOR] = sensor_msgs::image_encodings::RGB8;
@@ -320,6 +320,7 @@ void OBCameraNode::setupDefaultImageFormat() {
 
 void OBCameraNode::getParameters() {
   setAndGetNodeParameter<std::string>(camera_name_, "camera_name", "camera");
+  camera_link_frame_id_ = camera_name_ + "_link";
   for (auto stream_index : IMAGE_STREAMS) {
     std::string param_name = stream_name_[stream_index] + "_width";
     setAndGetNodeParameter(width_[stream_index], param_name, IMAGE_WIDTH);
@@ -380,7 +381,6 @@ void OBCameraNode::getParameters() {
   setAndGetNodeParameter<std::string>(ir_info_url_, "ir_info_url", "");
   setAndGetNodeParameter<std::string>(color_info_url_, "color_info_url", "");
   setAndGetNodeParameter(enable_colored_point_cloud_, "enable_colored_point_cloud", false);
-  setAndGetNodeParameter(camera_link_frame_id_, "camera_link_frame_id", DEFAULT_BASE_FRAME_ID);
   setAndGetNodeParameter(enable_point_cloud_, "enable_point_cloud", true);
   setAndGetNodeParameter<std::string>(point_cloud_qos_, "point_cloud_qos", "default");
   setAndGetNodeParameter(enable_publish_extrinsic_, "enable_publish_extrinsic", false);
@@ -470,15 +470,15 @@ void OBCameraNode::setupPublishers() {
         topic, rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(camera_info_qos_profile),
                            camera_info_qos_profile));
   }
-//  for (const auto& stream_index : HID_STREAMS) {
-//    if (!enable_stream_[stream_index]) {
-//      continue;
-//    }
-//    std::string data_topic_name = stream_name_[stream_index] + "/sample";
-//    auto data_qos = getRMWQosProfileFromString(imu_qos_[stream_index]);
-//    imu_publishers_[stream_index] = node_->create_publisher<sensor_msgs::msg::Imu>(
-//        data_topic_name, rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(data_qos), data_qos));
-//  }
+  //  for (const auto& stream_index : HID_STREAMS) {
+  //    if (!enable_stream_[stream_index]) {
+  //      continue;
+  //    }
+  //    std::string data_topic_name = stream_name_[stream_index] + "/sample";
+  //    auto data_qos = getRMWQosProfileFromString(imu_qos_[stream_index]);
+  //    imu_publishers_[stream_index] = node_->create_publisher<sensor_msgs::msg::Imu>(
+  //        data_topic_name, rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(data_qos), data_qos));
+  //  }
   if (enable_publish_extrinsic_) {
     extrinsics_publisher_ = node_->create_publisher<orbbec_camera_msgs::msg::Extrinsics>(
         "extrinsic/depth_to_color", rclcpp::QoS{1}.transient_local());
@@ -924,23 +924,38 @@ void OBCameraNode::calcAndPublishStaticTransform() {
   quaternion_optical.setRPY(-M_PI / 2, 0.0, -M_PI / 2);
   std::vector<float> zero_trans = {0, 0, 0};
   auto camera_param = findDefaultCameraParam();
-  if (enable_publish_extrinsic_ && extrinsics_publisher_ && camera_param.has_value()) {
+  if (camera_param.has_value()) {
     auto ex = camera_param->transform;
+    RCLCPP_INFO_STREAM(logger_,
+                       "transform x " << ex.trans[0] << " y " << ex.trans[1] << " z " << trans[2]);
     Q = rotationMatrixToQuaternion(ex.rot);
     Q = quaternion_optical * Q * quaternion_optical.inverse();
-    extrinsics_publisher_->publish(obExtrinsicsToMsg(ex, "depth_to_color_extrinsics"));
+    trans[0] = ex.trans[0];
+    trans[1] = ex.trans[1];
+    trans[2] = ex.trans[2];
   } else {
     Q.setRPY(0, 0, 0);
+  }
+  if (enable_publish_extrinsic_ && extrinsics_publisher_ && camera_param.has_value()) {
+    auto ex = camera_param->transform;
+    extrinsics_publisher_->publish(obExtrinsicsToMsg(ex, "depth_to_color_extrinsics"));
   }
   rclcpp::Time tf_timestamp = node_->now();
 
   publishStaticTF(tf_timestamp, trans, Q, frame_id_[DEPTH], frame_id_[COLOR]);
-  publishStaticTF(tf_timestamp, trans, Q, camera_link_frame_id_, frame_id_[COLOR]);
   publishStaticTF(tf_timestamp, zero_trans, quaternion_optical, frame_id_[COLOR],
                   optical_frame_id_[COLOR]);
   publishStaticTF(tf_timestamp, zero_trans, quaternion_optical, frame_id_[DEPTH],
                   optical_frame_id_[DEPTH]);
+  publishStaticTF(tf_timestamp, zero_trans, quaternion_optical, frame_id_[ACCEL],
+                  optical_frame_id_[ACCEL]);
+  publishStaticTF(tf_timestamp, zero_trans, quaternion_optical, frame_id_[GYRO],
+                  optical_frame_id_[GYRO]);
+  publishStaticTF(tf_timestamp, zero_trans, quaternion_optical, frame_id_[INFRA0],
+                  optical_frame_id_[INFRA0]);
   publishStaticTF(tf_timestamp, zero_trans, zero_rot, camera_link_frame_id_, frame_id_[DEPTH]);
+  publishStaticTF(tf_timestamp, zero_trans, zero_rot, camera_link_frame_id_, frame_id_[INFRA0]);
+  publishStaticTF(tf_timestamp, trans, Q, camera_link_frame_id_, frame_id_[COLOR]);
   publishStaticTF(tf_timestamp, zero_trans, zero_rot, camera_link_frame_id_, frame_id_[ACCEL]);
   publishStaticTF(tf_timestamp, zero_trans, zero_rot, camera_link_frame_id_, frame_id_[GYRO]);
 }
