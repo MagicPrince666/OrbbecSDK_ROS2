@@ -10,6 +10,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <regex>
 #include "orbbec_camera/utils.h"
 namespace orbbec_camera {
 sensor_msgs::msg::CameraInfo convertToCameraInfo(OBCameraIntrinsic intrinsic,
@@ -341,6 +342,43 @@ OB_SAMPLE_RATE sampleRateFromString(std::string &sample_rate) {
   }
 }
 
+std::string sampleRateToString(const OB_SAMPLE_RATE &sample_rate) {
+  switch (sample_rate) {
+    case OB_SAMPLE_RATE_1_5625_HZ:
+      return "1.5625hz";
+    case OB_SAMPLE_RATE_3_125_HZ:
+      return "3.125hz";
+    case OB_SAMPLE_RATE_6_25_HZ:
+      return "6.25hz";
+    case OB_SAMPLE_RATE_12_5_HZ:
+      return "12.5hz";
+    case OB_SAMPLE_RATE_25_HZ:
+      return "25hz";
+    case OB_SAMPLE_RATE_50_HZ:
+      return "50hz";
+    case OB_SAMPLE_RATE_100_HZ:
+      return "100hz";
+    case OB_SAMPLE_RATE_200_HZ:
+      return "200hz";
+    case OB_SAMPLE_RATE_500_HZ:
+      return "500hz";
+    case OB_SAMPLE_RATE_1_KHZ:
+      return "1khz";
+    case OB_SAMPLE_RATE_2_KHZ:
+      return "2khz";
+    case OB_SAMPLE_RATE_4_KHZ:
+      return "4khz";
+    case OB_SAMPLE_RATE_8_KHZ:
+      return "8khz";
+    case OB_SAMPLE_RATE_16_KHZ:
+      return "16khz";
+    case OB_SAMPLE_RATE_32_KHZ:
+      return "32khz";
+    default:
+      return "100hz";
+  }
+}
+
 OB_GYRO_FULL_SCALE_RANGE fullGyroScaleRangeFromString(std::string &full_scale_range) {
   std::transform(full_scale_range.begin(), full_scale_range.end(), full_scale_range.begin(),
                  ::tolower);
@@ -367,6 +405,29 @@ OB_GYRO_FULL_SCALE_RANGE fullGyroScaleRangeFromString(std::string &full_scale_ra
   }
 }
 
+std::string fullGyroScaleRangeToString(const OB_GYRO_FULL_SCALE_RANGE &full_scale_range) {
+  switch (full_scale_range) {
+    case OB_GYRO_FS_16dps:
+      return "16dps";
+    case OB_GYRO_FS_31dps:
+      return "31dps";
+    case OB_GYRO_FS_62dps:
+      return "62dps";
+    case OB_GYRO_FS_125dps:
+      return "125dps";
+    case OB_GYRO_FS_250dps:
+      return "250dps";
+    case OB_GYRO_FS_500dps:
+      return "500dps";
+    case OB_GYRO_FS_1000dps:
+      return "1000dps";
+    case OB_GYRO_FS_2000dps:
+      return "2000dps";
+    default:
+      return "16dps";
+  }
+}
+
 OBAccelFullScaleRange fullAccelScaleRangeFromString(std::string &full_scale_range) {
   std::transform(full_scale_range.begin(), full_scale_range.end(), full_scale_range.begin(),
                  ::tolower);
@@ -383,5 +444,40 @@ OBAccelFullScaleRange fullAccelScaleRangeFromString(std::string &full_scale_rang
                         "Unknown OB_ACCEL_FULL_SCALE_RANGE: " << full_scale_range);
     return OB_ACCEL_FS_16g;
   }
+}
+
+std::string fullAccelScaleRangeToString(const OBAccelFullScaleRange &full_scale_range) {
+  switch (full_scale_range) {
+    case OB_ACCEL_FS_2g:
+      return "2g";
+    case OB_ACCEL_FS_4g:
+      return "4g";
+    case OB_ACCEL_FS_8g:
+      return "8g";
+    case OB_ACCEL_FS_16g:
+      return "16g";
+    default:
+      return "2g";
+  }
+}
+
+std::string parseUsbPort(const std::string &line) {
+  std::string port_id;
+  std::regex self_regex("(?:[^ ]+/usb[0-9]+[0-9./-]*/){0,1}([0-9.-]+)(:){0,1}[^ ]*",
+                        std::regex_constants::ECMAScript);
+  std::smatch base_match;
+  bool found = std::regex_match(line, base_match, self_regex);
+  if (found) {
+    port_id = base_match[1].str();
+    if (base_match[2].str().empty())  // This is libuvc string. Remove counter is exists.
+    {
+      std::regex end_regex = std::regex(".+(-[0-9]+$)", std::regex_constants::ECMAScript);
+      bool found_end = std::regex_match(port_id, base_match, end_regex);
+      if (found_end) {
+        port_id = port_id.substr(0, port_id.size() - base_match[1].str().size());
+      }
+    }
+  }
+  return port_id;
 }
 }  // namespace orbbec_camera

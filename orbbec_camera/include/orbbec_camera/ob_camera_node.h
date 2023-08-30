@@ -30,6 +30,8 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
+#include <tf2/LinearMath/Transform.h>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/empty.hpp>
 
@@ -54,6 +56,12 @@
 #include "orbbec_camera/dynamic_params.h"
 #include "orbbec_camera/d2c_viewer.h"
 #include "magic_enum/magic_enum.hpp"
+#include "mjpeg_decoder.h"
+#if defined(USE_RK_HW_DECODER)
+#include "orbbec_camera/rk_mpp_decoder.h"
+#elif defined(USE_GST_HW_DECODER)
+#include "orbbec_camera/gst_decoder.h"
+#endif
 
 #define STREAM_NAME(sip)                                                                       \
   (static_cast<std::ostringstream&&>(std::ostringstream()                                      \
@@ -154,8 +162,8 @@ class OBCameraNode {
 
   void setupPublishers();
 
-  void publishStaticTF(const rclcpp::Time& t, const std::vector<float>& trans,
-                       const tf2::Quaternion& q, const std::string& from, const std::string& to);
+  void publishStaticTF(const rclcpp::Time& t, const tf2::Vector3& trans, const tf2::Quaternion& q,
+                       const std::string& from, const std::string& to);
 
   void calcAndPublishStaticTransform();
 
@@ -252,6 +260,8 @@ class OBCameraNode {
 
   void onNewFrameSetCallback(const std::shared_ptr<ob::FrameSet>& frame_set);
 
+  std::shared_ptr<ob::Frame> softwareDecodeColorFrame(const std::shared_ptr<ob::Frame>& frame);
+
   void onNewFrameCallback(const std::shared_ptr<ob::Frame>& frame,
                           const stream_index_pair& stream_index);
 
@@ -338,6 +348,7 @@ class OBCameraNode {
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr toggle_sensors_srv_;
 
   bool publish_tf_ = false;
+  bool tf_published_ = false;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_ = nullptr;
   std::shared_ptr<tf2_ros::TransformBroadcaster> dynamic_tf_broadcaster_ = nullptr;
   std::vector<geometry_msgs::msg::TransformStamped> tf_msgs;
@@ -395,5 +406,11 @@ class OBCameraNode {
   double angular_vel_cov_ = 0.0001;
   std::deque<IMUData> imu_history_;
   IMUData accel_data_{ACCEL, {0, 0, 0}, -1.0};
+  // mjpeg decoder
+  std::shared_ptr<MjpegDecoder> mjpeg_decoder_ = nullptr;
+  uint8_t* rgb_buffer_ = nullptr;
+  std::string jpeg_decoder_ = "avdec_mjpeg";  // avdec_mjpeg, mppjpegdec, nvjpegdec, jpegdec
+  std::string jpeg_parse_ = "jpegparse";
+  std::string video_convert_ = "videoconvert";  // videoconvert, nvvidconv
 };
 }  // namespace orbbec_camera
