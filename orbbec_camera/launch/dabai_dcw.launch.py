@@ -23,7 +23,7 @@ def generate_launch_description():
         DeclareLaunchArgument('connection_delay', default_value='100'),
         DeclareLaunchArgument('color_width', default_value='640'),
         DeclareLaunchArgument('color_height', default_value='360'),
-        DeclareLaunchArgument('color_fps', default_value='30'),
+        DeclareLaunchArgument('color_fps', default_value='10'),
         DeclareLaunchArgument('color_format', default_value='MJPG'),
         DeclareLaunchArgument('enable_color', default_value='true'),
         DeclareLaunchArgument('flip_color', default_value='false'),
@@ -32,7 +32,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_color_auto_exposure', default_value='true'),
         DeclareLaunchArgument('depth_width', default_value='640'),
         DeclareLaunchArgument('depth_height', default_value='360'),
-        DeclareLaunchArgument('depth_fps', default_value='30'),
+        DeclareLaunchArgument('depth_fps', default_value='10'),
         DeclareLaunchArgument('depth_format', default_value='Y11'),
         DeclareLaunchArgument('enable_depth', default_value='true'),
         DeclareLaunchArgument('flip_depth', default_value='false'),
@@ -40,9 +40,9 @@ def generate_launch_description():
         DeclareLaunchArgument('depth_camera_info_qos', default_value='default'),
         DeclareLaunchArgument('ir_width', default_value='640'),
         DeclareLaunchArgument('ir_height', default_value='480'),
-        DeclareLaunchArgument('ir_fps', default_value='30'),
+        DeclareLaunchArgument('ir_fps', default_value='10'),
         DeclareLaunchArgument('ir_format', default_value='Y10'),
-        DeclareLaunchArgument('enable_ir', default_value='true'),
+        DeclareLaunchArgument('enable_ir', default_value='false'),
         DeclareLaunchArgument('flip_ir', default_value='false'),
         DeclareLaunchArgument('ir_qos', default_value='default'),
         DeclareLaunchArgument('ir_camera_info_qos', default_value='default'),
@@ -58,10 +58,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_ldp', default_value='true'),
         DeclareLaunchArgument('enable_soft_filter', default_value='true'),
         DeclareLaunchArgument('soft_filter_max_diff', default_value='-1'),
-        DeclareLaunchArgument('soft_filter_speckle_size', default_value='-1'),
-        DeclareLaunchArgument('jpeg_decoder', default_value='avdec_mjpeg'),
-        DeclareLaunchArgument('video_convert', default_value='videoconvert'),
-        DeclareLaunchArgument('jpeg_parse', default_value='jpegparse'),
+        DeclareLaunchArgument('soft_filter_speckle_size', default_value='-1')
     ]
 
     # Node configuration

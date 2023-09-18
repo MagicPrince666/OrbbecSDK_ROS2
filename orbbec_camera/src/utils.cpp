@@ -1,17 +1,22 @@
-/**************************************************************************/
-/*                                                                        */
-/* Copyright (c) 2013-2022 Orbbec 3D Technology, Inc                      */
-/*                                                                        */
-/* PROPRIETARY RIGHTS of Orbbec 3D Technology are involved in the         */
-/* subject matter of this material. All manufacturing, reproduction, use, */
-/* and sales rights pertaining to this subject matter are governed by the */
-/* license agreement. The recipient of this software implicitly accepts   */
-/* the terms of the license.                                              */
-/*                                                                        */
-/**************************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2023 Orbbec 3D Technology, Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 #include <regex>
 #include "orbbec_camera/utils.h"
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 namespace orbbec_camera {
 sensor_msgs::msg::CameraInfo convertToCameraInfo(OBCameraIntrinsic intrinsic,
                                                  OBCameraDistortion distortion, int width) {
@@ -82,6 +87,92 @@ void saveRGBPointsToPly(const std::shared_ptr<ob::Frame> &frame, const std::stri
   }
 }
 
+void saveRGBPointCloudMsgToPly(const sensor_msgs::msg::PointCloud2 &msg,
+                               const std::string &fileName) {
+  FILE *fp = fopen(fileName.c_str(), "wb+");
+  CHECK_NOTNULL(fp);
+
+  sensor_msgs::PointCloud2ConstIterator<float> iter_x(msg, "x");
+  sensor_msgs::PointCloud2ConstIterator<float> iter_y(msg, "y");
+  sensor_msgs::PointCloud2ConstIterator<float> iter_z(msg, "z");
+
+  // First, count the actual number of valid points
+  size_t valid_points = 0;
+  for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z) {
+    if (!std::isnan(*iter_x) && !std::isnan(*iter_y) && !std::isnan(*iter_z)) {
+      ++valid_points;
+    }
+  }
+
+  // Reset the iterators
+  iter_x = sensor_msgs::PointCloud2ConstIterator<float>(msg, "x");
+  iter_y = sensor_msgs::PointCloud2ConstIterator<float>(msg, "y");
+  iter_z = sensor_msgs::PointCloud2ConstIterator<float>(msg, "z");
+  sensor_msgs::PointCloud2ConstIterator<uint8_t> iter_r(msg, "r");
+  sensor_msgs::PointCloud2ConstIterator<uint8_t> iter_g(msg, "g");
+  sensor_msgs::PointCloud2ConstIterator<uint8_t> iter_b(msg, "b");
+
+  fprintf(fp, "ply\n");
+  fprintf(fp, "format ascii 1.0\n");
+  fprintf(fp, "element vertex %zu\n", valid_points);
+  fprintf(fp, "property float x\n");
+  fprintf(fp, "property float y\n");
+  fprintf(fp, "property float z\n");
+  fprintf(fp, "property uchar red\n");
+  fprintf(fp, "property uchar green\n");
+  fprintf(fp, "property uchar blue\n");
+  fprintf(fp, "end_header\n");
+
+  for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z, ++iter_r, ++iter_g, ++iter_b) {
+    if (!std::isnan(*iter_x) && !std::isnan(*iter_y) && !std::isnan(*iter_z)) {
+      fprintf(fp, "%.3f %.3f %.3f %d %d %d\n", *iter_x, *iter_y, *iter_z, (int)*iter_r,
+              (int)*iter_g, (int)*iter_b);
+    }
+  }
+
+  fflush(fp);
+  fclose(fp);
+}
+
+void saveDepthPointsToPly(const sensor_msgs::msg::PointCloud2 &msg, const std::string &fileName) {
+  FILE *fp = fopen(fileName.c_str(), "wb+");
+  CHECK_NOTNULL(fp);
+
+  sensor_msgs::PointCloud2ConstIterator<float> iter_x(msg, "x");
+  sensor_msgs::PointCloud2ConstIterator<float> iter_y(msg, "y");
+  sensor_msgs::PointCloud2ConstIterator<float> iter_z(msg, "z");
+
+  // First, count the actual number of valid points
+  size_t valid_points = 0;
+  for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z) {
+    if (!std::isnan(*iter_x) && !std::isnan(*iter_y) && !std::isnan(*iter_z)) {
+      ++valid_points;
+    }
+  }
+
+  // Reset the iterators
+  iter_x = sensor_msgs::PointCloud2ConstIterator<float>(msg, "x");
+  iter_y = sensor_msgs::PointCloud2ConstIterator<float>(msg, "y");
+  iter_z = sensor_msgs::PointCloud2ConstIterator<float>(msg, "z");
+
+  fprintf(fp, "ply\n");
+  fprintf(fp, "format ascii 1.0\n");
+  fprintf(fp, "element vertex %zu\n", valid_points);
+  fprintf(fp, "property float x\n");
+  fprintf(fp, "property float y\n");
+  fprintf(fp, "property float z\n");
+  fprintf(fp, "end_header\n");
+
+  for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z) {
+    if (!std::isnan(*iter_x) && !std::isnan(*iter_y) && !std::isnan(*iter_z)) {
+      fprintf(fp, "%.3f %.3f %.3f\n", *iter_x, *iter_y, *iter_z);
+    }
+  }
+
+  fflush(fp);
+  fclose(fp);
+}
+
 void savePointsToPly(const std::shared_ptr<ob::Frame> &frame, const std::string &fileName) {
   size_t point_size = frame->dataSize() / sizeof(OBPoint);
   FILE *fp = fopen(fileName.c_str(), "wb+");
@@ -113,6 +204,7 @@ tf2::Quaternion rotationMatrixToQuaternion(const float rotation[9]) {
   Eigen::Quaternionf q(m);
   return {q.x(), q.y(), q.z(), q.w()};
 }
+
 std::ostream &operator<<(std::ostream &os, const OBCameraParam &rhs) {
   auto depth_intrinsic = rhs.depthIntrinsic;
   auto rgb_intrinsic = rhs.rgbIntrinsic;
@@ -154,6 +246,7 @@ rclcpp::Time frameTimeStampToROSTime(uint64_t ms) {
   rclcpp::Time stamp(sec, nano_sec);
   return stamp;
 }
+
 std::string getObSDKVersion() {
   std::string major = std::to_string(ob::Version::getMajor());
   std::string minor = std::to_string(ob::Version::getMinor());
@@ -161,6 +254,7 @@ std::string getObSDKVersion() {
   std::string version = major + "." + minor + "." + patch;
   return version;
 }
+
 OBFormat OBFormatFromString(const std::string &format) {
   std::string fixed_format;
   std::transform(format.begin(), format.end(), std::back_inserter(fixed_format),
@@ -253,13 +347,14 @@ rmw_qos_profile_t getRMWQosProfileFromString(const std::string &str_qos) {
     return rmw_qos_profile_default;
   }
 }
+
 bool isOpenNIDevice(int pid) {
   static const std::vector<int> OPENNI_DEVICE_PIDS = {
-      0x0300, 0x0301, 0x0400, 0x0401, 0x0402, 0x0403, 0x0404, 0x0407, 0x0601, 0x060b,
-      0x060e, 0x060f, 0x0610, 0x0613, 0x0614, 0x0616, 0x0617, 0x0618, 0x061b, 0x062b,
-      0x062c, 0x062d, 0x0632, 0x0633, 0x0634, 0x0635, 0x0636, 0x0637, 0x0638, 0x0639,
-      0x063a, 0x0650, 0x0651, 0x0654, 0x0655, 0x0656, 0x0657, 0x0658, 0x0659, 0x065a,
-      0x065b, 0x065c, 0x065d, 0x0698, 0x0699, 0x069a, 0x055c};
+      0x0300, 0x0301, 0x0400, 0x0401, 0x0402, 0x0403, 0x0404, 0x0407, 0x0601, 0x060b, 0x060e,
+      0x060f, 0x0610, 0x0613, 0x0614, 0x0616, 0x0617, 0x0618, 0x061b, 0x062b, 0x062c, 0x062d,
+      0x0632, 0x0633, 0x0634, 0x0635, 0x0636, 0x0637, 0x0638, 0x0639, 0x063a, 0x0650, 0x0651,
+      0x0654, 0x0655, 0x0656, 0x0657, 0x0658, 0x0659, 0x065a, 0x065b, 0x065c, 0x065d, 0x0698,
+      0x0699, 0x069a, 0x055c, 0x065e, 0x069a, 0x069f, 0x06a0};
 
   return std::any_of(OPENNI_DEVICE_PIDS.begin(), OPENNI_DEVICE_PIDS.end(),
                      [pid](int pid_openni) { return pid == pid_openni; });
@@ -282,24 +377,23 @@ OB_DEPTH_PRECISION_LEVEL depthPrecisionLevelFromString(
   }
 }
 
-OBSyncMode OBSyncModeFromString(const std::string &mode) {
-  if (mode == "CLOSE") {
-    return OBSyncMode::OB_SYNC_MODE_CLOSE;
+OBMultiDeviceSyncMode OBSyncModeFromString(const std::string &mode) {
+  if (mode == "FREE_RUN") {
+    return OBMultiDeviceSyncMode::OB_MULTI_DEVICE_SYNC_MODE_FREE_RUN;
   } else if (mode == "STANDALONE") {
-    return OBSyncMode::OB_SYNC_MODE_STANDALONE;
+    return OBMultiDeviceSyncMode::OB_MULTI_DEVICE_SYNC_MODE_STANDALONE;
+  } else if (mode == "PRIMARY") {
+    return OBMultiDeviceSyncMode::OB_MULTI_DEVICE_SYNC_MODE_PRIMARY;
   } else if (mode == "SECONDARY") {
-    return OBSyncMode::OB_SYNC_MODE_SECONDARY;
-  } else if (mode == "PRIMARY_MCU_TRIGGER") {
-    return OBSyncMode::OB_SYNC_MODE_PRIMARY_MCU_TRIGGER;
-  } else if (mode == "PRIMARY_IR_TRIGGER") {
-    return OBSyncMode::OB_SYNC_MODE_PRIMARY_IR_TRIGGER;
-  } else if (mode == "PRIMARY_SOFT_TRIGGER") {
-    return OBSyncMode::OB_SYNC_MODE_PRIMARY_SOFT_TRIGGER;
-  } else if (mode == "SECONDARY_SOFT_TRIGGER") {
-    return OBSyncMode::OB_SYNC_MODE_SECONDARY_SOFT_TRIGGER;
+    return OBMultiDeviceSyncMode::OB_MULTI_DEVICE_SYNC_MODE_SECONDARY;
+  } else if (mode == "SECONDARY_SYNCED") {
+    return OBMultiDeviceSyncMode::OB_MULTI_DEVICE_SYNC_MODE_SECONDARY_SYNCED;
+  } else if (mode == "SOFTWARE_TRIGGERING") {
+    return OBMultiDeviceSyncMode::OB_MULTI_DEVICE_SYNC_MODE_SOFTWARE_TRIGGERING;
+  } else if (mode == "HARDWARE_TRIGGERING") {
+    return OBMultiDeviceSyncMode::OB_MULTI_DEVICE_SYNC_MODE_HARDWARE_TRIGGERING;
   } else {
-    RCLCPP_ERROR_STREAM(rclcpp::get_logger("utils"), "Unknown OBSyncMode: " << mode);
-    return OBSyncMode::OB_SYNC_MODE_CLOSE;
+    return OBMultiDeviceSyncMode::OB_MULTI_DEVICE_SYNC_MODE_FREE_RUN;
   }
 }
 
@@ -480,4 +574,19 @@ std::string parseUsbPort(const std::string &line) {
   }
   return port_id;
 }
+
+bool isValidJPEG(const std::shared_ptr<ob::ColorFrame> &frame) {
+  if (frame->dataSize() < 2) {  // Checking both start and end markers, so minimal size is 4
+    return false;
+  }
+
+  const auto *data = static_cast<const uint8_t *>(frame->data());
+
+  // Check for JPEG start marker
+  if (data[0] != 0xFF || data[1] != 0xD8) {
+    return false;
+  }
+  return true;
+}
+
 }  // namespace orbbec_camera

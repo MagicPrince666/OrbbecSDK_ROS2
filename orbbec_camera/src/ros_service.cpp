@@ -1,14 +1,18 @@
-/**************************************************************************/
-/*                                                                        */
-/* Copyright (c) 2013-2022 Orbbec 3D Technology, Inc                      */
-/*                                                                        */
-/* PROPRIETARY RIGHTS of Orbbec 3D Technology are involved in the         */
-/* subject matter of this material. All manufacturing, reproduction, use, */
-/* and sales rights pertaining to this subject matter are governed by the */
-/* license agreement. The recipient of this software implicitly accepts   */
-/* the terms of the license.                                              */
-/*                                                                        */
-/**************************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2023 Orbbec 3D Technology, Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 #include "orbbec_camera/ob_camera_node.h"
 #include <rclcpp/rclcpp.hpp>
@@ -152,7 +156,7 @@ void OBCameraNode::setupCameraCtrlServices() {
       });
   switch_ir_camera_srv_ = node_->create_service<SetString>(
       "switch_ir", [this](const std::shared_ptr<SetString::Request> request,
-                                 std::shared_ptr<SetString::Response> response) {
+                          std::shared_ptr<SetString::Response> response) {
         switchIRCameraCallback(request, response);
       });
 }
@@ -163,6 +167,8 @@ void OBCameraNode::setExposureCallback(const std::shared_ptr<SetInt32::Request>&
   auto stream = stream_index.first;
   try {
     switch (stream) {
+      case OB_STREAM_IR_LEFT:
+      case OB_STREAM_IR_RIGHT:
       case OB_STREAM_IR:
         device_->setIntProperty(OB_PROP_IR_EXPOSURE_INT, request->data);
         break;
@@ -197,6 +203,8 @@ void OBCameraNode::getGainCallback(const std::shared_ptr<GetInt32::Request>& req
   auto stream = stream_index.first;
   try {
     switch (stream) {
+      case OB_STREAM_IR_LEFT:
+      case OB_STREAM_IR_RIGHT:
       case OB_STREAM_IR:
         response->data = device_->getIntProperty(OB_PROP_IR_GAIN_INT);
         break;
@@ -229,6 +237,8 @@ void OBCameraNode::setGainCallback(const std::shared_ptr<SetInt32 ::Request>& re
   auto stream = stream_index.first;
   try {
     switch (stream) {
+      case OB_STREAM_IR_LEFT:
+      case OB_STREAM_IR_RIGHT:
       case OB_STREAM_IR:
         device_->setIntProperty(OB_PROP_IR_GAIN_INT, request->data);
         break;
@@ -329,6 +339,8 @@ void OBCameraNode::setAutoExposureCallback(
   auto stream = stream_index.first;
   try {
     switch (stream) {
+      case OB_STREAM_IR_LEFT:
+      case OB_STREAM_IR_RIGHT:
       case OB_STREAM_IR:
         response->success = true;
         device_->setIntProperty(OB_PROP_IR_AUTO_EXPOSURE_BOOL, request->data);
@@ -450,6 +462,7 @@ void OBCameraNode::getExposureCallback(const std::shared_ptr<GetInt32::Request>&
   auto stream = stream_index.first;
   try {
     switch (stream) {
+      case OB_STREAM_IR_RIGHT:
       case OB_STREAM_IR:
         response->data = device_->getIntProperty(OB_PROP_IR_EXPOSURE_INT);
         break;
@@ -531,6 +544,10 @@ void OBCameraNode::setMirrorCallback(const std::shared_ptr<SetBool::Request>& re
   auto stream = stream_index.first;
   try {
     switch (stream) {
+      case OB_STREAM_IR_RIGHT:
+        device_->setBoolProperty(OB_PROP_IR_RIGHT_MIRROR_BOOL, request->data);
+        break;
+      case OB_STREAM_IR_LEFT:
       case OB_STREAM_IR:
         device_->setBoolProperty(OB_PROP_IR_MIRROR_BOOL, request->data);
         break;

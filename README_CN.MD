@@ -60,7 +60,7 @@ colcon build --event-handlers  console_direct+  --cmake-args  -DCMAKE_BUILD_TYPE
 
 ```bash
 . ./install/setup.bash 
-ros2 launch orbbec_camera astra.launch.xml
+ros2 launch orbbec_camera astra.launch.py # or other launch file, see below table
 ```
 
 - 在终端 2。
@@ -145,6 +145,13 @@ ros2 service call /camera/toggle_ir std_srvs/srv/SetBool "{data : true}"
 
 ```
 
+- 保存点云
+
+```bash
+ros2 service call /camera/save_point_cloud std_srvs/srv/Empty "{}"
+```
+
+
 ### 所有相机控制的service
 
 下面的这些服务的名字已经表明了它的功能，但是要注意的是只有当在launch文件里面把相关数据流打开的时候才能用。
@@ -200,41 +207,62 @@ ros2 run orbbec_camera list_devices_node
 ```
 
 - 把参数 `device_num` 设置成为你的相机数量。
-- 编辑 `OrbbecSDK_ROS2/launch/multi_xxx.launch.xml` 修改相机的`usb_port`。
+- 编辑 `OrbbecSDK_ROS2/launch/multi_xxx.launch.py` 修改相机的`usb_port`。
 - 注意不要忘记在`include` 加上 `group` 标签，不然前面的相机的参数会污染后面的相机的参数。
 
-```xml
+```python
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction, ExecuteProcess
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+import os
 
-<launch>
-  <!-- unique camera name-->
-  <arg name="camera_name" default="camera"/>
-  <!-- Hardware depth registration -->
-  <arg name="3d_sensor" default="astra_mini"/>
-  <!-- stereo_s_u3, astrapro, astra -->
-  <arg name="camera1_prefix" default="01"/>
-  <arg name="camera2_prefix" default="02"/>
-  <!-- TODO: change to your usb port -->
-  <arg name="camera1_usb_port" default="1-4.2.1"/>
-  <arg name="camera2_usb_port" default="1-4.2.1"/>
-  <arg name="device_num" default="2"/>
-  <node name="camera" pkg="orbbec_camera" exec="ob_cleanup_shm_node" output="screen"/>
-  <group>
-    <include file="$(find-pkg-share orbbec_camera)/launch/gemini2.launch.xml">
-      <arg name="camera_name" value="camera_$(var camera1_prefix)"/>
-      <arg name="usb_port" value="$(var camera1_usb_port)"/>
-      <arg name="device_num" value="$(var device_num)"/>
-    </include>
-  </group>
-  <group>
-    <include file="$(find-pkg-share orbbec_camera)/launch/dabai_dcw.launch.xml">
-      <arg name="camera_name" value="camera_$(var camera2_prefix)"/>
-      <arg name="usb_port" value="$(var camera2_usb_port)"/>
-      <arg name="device_num" value="$(var device_num)"/>
-    </include>
-  </group>
-  <node pkg="tf2_ros" exec="static_transform_publisher" name="camera_tf"
-        args="0 0 0 0 0 0 camera01_link camera02_link"/>
-</launch>
+
+def generate_launch_description():
+    # Node configuration
+    cleanup_node = Node(
+        package='orbbec_camera',
+        executable='ob_cleanup_shm_node',
+        name='camera',
+        output='screen'
+    )
+
+    # Include launch files
+    package_dir = get_package_share_directory('orbbec_camera')
+    launch_file_dir = os.path.join(package_dir, 'launch')
+    launch1_include = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(launch_file_dir, 'gemini2.launch.py')
+        ),
+        launch_arguments={
+            'camera_name': 'camera_01',
+            'usb_port': '6-2.4.4.2',  # replace your usb port here 
+            'device_num': '2'
+        }.items()
+    )
+
+    launch2_include = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(launch_file_dir, 'gemini2.launch.py')
+        ),
+        launch_arguments={
+            'camera_name': 'camera_02',
+            'usb_port': '6-2.4.1',  # replace your usb port here
+            'device_num': '2'
+        }.items()
+    )
+
+    # If you need more cameras, just add more launch_include here, and change the usb_port and device_num
+
+    # Launch description
+    ld = LaunchDescription([
+        cleanup_node,
+        GroupAction([launch1_include]),
+        GroupAction([launch2_include]),
+    ])
+
+    return ld
 
 ```
 
@@ -250,8 +278,20 @@ ros2 run orbbec_camera ob_cleanup_shm_node
 - 执行下面的命令启动多相机:
 
 ```bash
-ros2 launch orbbec_camera multi_camera.launch.xml
+ros2 launch orbbec_camera multi_camera.launch.py
 ```
+
+## 调用硬件解码JPEG
+
+### rockchip 和 Amlogic
+
+依赖  `rockchip-mpp-dev` 和 `rockchip-rga-dev`, 不是所有的系统都有这两个包， 名字可能不一样， 请自行搜索。
+打开 `CMakeLists.txt` 把 `USE_RK_HW_DECODER` 设置为 `ON`。
+
+### Nvidia Jetson
+
+依赖 : `jetson_multimedia_api`,`libyuv` 。
+打开 `CMakeLists.txt` 把 `USE_NV_HW_DECODER` 设置为 `ON`。
 
 ## 启动参数
 
@@ -276,25 +316,27 @@ ros2 launch orbbec_camera multi_camera.launch.xml
 - `usb_port` : USB端口号，当使用多个相机时，这是必需的。
 - `enable_accel`: 是否启用加速度计。
 - `accel_rate` : 加速度计的频率， 可选值为`1.5625hz`,`3.125hz`,`6.25hz`,`12.5hz`,`25hz`,`50hz`,
-`100hz`,`200hz`,`500hz`,`1khz`,`2khz`,`4khz`,`8khz`,`16khz`,`32khz`。具体的值取决于当前的相机型号。
+  `100hz`,`200hz`,`500hz`,`1khz`,`2khz`,`4khz`,`8khz`,`16khz`,`32khz`。具体的值取决于当前的相机型号。
 - `accel_range` : 加速度计的量程, 可选值为`2g`,`4g`,`8g`,`16g`。具体的值取决于当前的相机型号。
 - `enable_gyro` : 是否启用陀螺仪。
 - `gyro_rate` : 陀螺仪的频率, 可选值为`1.5625hz`,`3.125hz`,`6.25hz`,`12.5hz`,`25hz`,`50hz`,
-`100hz`,`200hz`,`500hz`,`1khz`,`2khz`,`4khz`,`8khz`,`16khz`,`32khz`。具体的值取决于当前的相机型号。
-- `gyro_range` : 陀螺仪的量程, 可选值为`16dps`,`31dps`,`62dps`,`125dps`,`250dps`,`500dps`,`1000dps`,`2000dps`。具体的值取决于当前的相机型号。
-
+  `100hz`,`200hz`,`500hz`,`1khz`,`2khz`,`4khz`,`8khz`,`16khz`,`32khz`。具体的值取决于当前的相机型号。
+- `gyro_range` : 陀螺仪的量程, 可选值为`16dps`,`31dps`,`62dps`,`125dps`,`250dps`,`500dps`,`1000dps`,`2000dps`
+  。具体的值取决于当前的相机型号。
 
 ## 查看相机支持那些Profile
-  
+
   ```bash
   ros2 run orbbec_camera list_camera_profile_mode_node
   ```
+
 ## 启动文件
 
 | product serials                              | launch file             |
-| -------------------------------------------- | ----------------------- |
+|----------------------------------------------|-------------------------|
 | astra+                                       | astra_adv.launch.py     |
 | astra /astra mini /astra mini pro /astra pro | astra.launch.py         |
+| astra mini pro s                             | astra.launch.py         |
 | astra2                                       | astra2.launch.py        |
 | astra stereo s                               | stereo_s_u3.launch.py   |
 | dabai                                        | dabai.launch.py         |
@@ -311,58 +353,30 @@ ros2 launch orbbec_camera multi_camera.launch.xml
 | gemini2L                                     | gemini2L.launch.py      |
 | gemini e                                     | gemini_e.launch.py      |
 | gemini e lite                                | gemini_e_lite.launch.py |
+
 实际上所有的launch文件都是差不多的内容，只是相机的分辨率和图像格式不同。
 XML launch 文件将会在后续的版本中删除。
+
 ## 已经支持的硬件产品列表
 
-| **SDK version** | **products list** | **firmware version**        |
-| --------------- | ----------------- | --------------------------- |
-| v1.6.2          | Astra2            | 2.8.20                      |
-|                 | Gemini2 L         | 1.4.32                      |
-|                 | Gemini2           | 1.4.60                      |
-|                 | FemtoMega         | 1.1.7                       |
-|                 | Astra+            | 1.0.22/1.0.21/1.0.20/1.0.19 |
-|                 | Femto             | 1.6.7                       |
-|                 | Femto W           | 1.1.8                       |
-|                 | Dabai             | 2436                        |
-|                 | Dabai DCW         | 2460                        |
-|                 | Dabai DW          | 2606                        |
-|                 | Astra Mini Pro    | 1007                        |
-|                 | Astra Pro Plus    | 2513                        |
-|                 | A1 Pro            | 3057                        |
-|                 | Gemini E          | 3460                        |
-|                 | Gemini E Lite     | 3606                        |
-|                 | Gemini            | 3.0.18                      |
-| v1.5.7          | Gemini2           | 1.4.60                      |
-|                 | FemtoMega         | 1.1.5                       |
-|                 | Astra+            | 1.0.22/1.0.21/1.0.20/1.0.19 |
-|                 | Femto             | 1.6.7                       |
-|                 | Femto W           | 1.1.8                       |
-|                 | Dabai             | 2436                        |
-|                 | Dabai DCW         | 2460                        |
-|                 | Dabai DW          | 2606                        |
-|                 | Astra Mini Pro    | 1007                        |
-|                 | Astra Pro Plus    | 2513                        |
-|                 | A1 Pro            | 3057                        |
-|                 | Gemini E          | 3460                        |
-|                 | Gemini E Lite     | 3606                        |
-|                 | Gemini            | 3.0.18                      |
-| v1.4.3          | Astra+            | 1.0.22/1.0.21/1.0.20/1.0.19 |
-|                 | Femto             | 1.6.7                       |
-|                 | *Femto W          | 1.1.3                       |
-|                 | Dabai             | 2436                        |
-|                 | Dabai DCW         | 2460                        |
-|                 | Dabai DW          | 2606                        |
-|                 | Astra Mini Pro    | 1007                        |
-|                 | Astra Pro Plus    | 2513                        |
-|                 | Gemini            | 3.0.18                      |
-| v1.3.1          | Astra+            | 1.0.21/1.0.20/1.0.19        |
-|                 | Femto             | 1.6.7                       |
-| v1.2.8          | Astra+            | 1.0.20                      |
-|                 | Femto             | 1.6.7                       |
-| v1.1.6          | Astra+            | 1.0.20/1.0.19               |
-|                 | *Femto            | 1.5.1                       |
-| v1.0.2          | Astra+            | 1.0.19                      |
+| **SDK version** | **products list** | **firmware version**                      |
+|-----------------|-------------------|-------------------------------------------|
+| v1.7.2          | Gemini 2 XL       | Obox: V1.2.5  VL:1.4.54                   |
+|                 | Astra 2           | 2.8.20                                    |
+|                 | Gemini 2 L        | 1.4.32                                    |
+|                 | Gemini 2          | 1.4.60 /1.4.76                            |
+|                 | Femto Mega        | 1.1.7  (window10、ubuntu20.04、ubuntu22.04) |
+|                 | Astra+            | 1.0.22/1.0.21/1.0.20/1.0.19               |
+|                 | Femto             | 1.6.7                                     |
+|                 | Femto W           | 1.1.8                                     |
+|                 | DaBai             | 2436                                      |
+|                 | DaBai DCW         | 2460                                      |
+|                 | DaBai DW          | 2606                                      |
+|                 | Astra Mini Pro    | 1007                                      |
+|                 | Gemini E          | 3460                                      |
+|                 | Gemini E Lite     | 3606                                      |
+|                 | Gemini            | 3.0.18                                    |
+|                 | Astra Mini S Pro  | 1.0.05                                    |
 
 ## DDS Tuning
 

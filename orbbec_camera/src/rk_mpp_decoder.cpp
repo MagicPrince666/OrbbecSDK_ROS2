@@ -1,10 +1,27 @@
+/*******************************************************************************
+* Copyright (c) 2023 Orbbec 3D Technology, Inc
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*******************************************************************************/
+
 #include "orbbec_camera/rk_mpp_decoder.h"
 #include <rclcpp/rclcpp.hpp>
 #include <glog/logging.h>
+#include <magic_enum/magic_enum.hpp>
 
 namespace orbbec_camera {
 
-RKMjpegDecoder::RKMjpegDecoder(int width, int height) : MjpegDecoder(width, height) {
+RKJPEGDecoder::RKJPEGDecoder(int width, int height) : JPEGDecoder(width, height) {
   rgb_buffer_ = new uint8_t[width_ * height_ * 3];
   MPP_RET ret = mpp_create(&mpp_ctx_, &mpp_api_);
   if (ret != MPP_OK) {
@@ -72,7 +89,7 @@ RKMjpegDecoder::RKMjpegDecoder(int width, int height) : MjpegDecoder(width, heig
   data_buffer_ = (uint8_t *)mpp_buffer_get_ptr(mpp_packet_buffer_);
 }
 
-RKMjpegDecoder::~RKMjpegDecoder() {
+RKJPEGDecoder::~RKJPEGDecoder() {
   if (mpp_frame_buffer_) {
     mpp_buffer_put(mpp_frame_buffer_);
     mpp_frame_buffer_ = nullptr;
@@ -101,17 +118,12 @@ RKMjpegDecoder::~RKMjpegDecoder() {
     mpp_destroy(mpp_ctx_);
     mpp_ctx_ = nullptr;
   }
-  if(rgb_buffer_){
+  if (rgb_buffer_) {
     delete[] rgb_buffer_;
   }
 }
 
-bool RKMjpegDecoder::mppFrame2RGB(const MppFrame frame, uint8_t *data) {
-  rga_info_t src_info;
-  rga_info_t dst_info;
-  // NOTE: memset to zero is MUST
-  memset(&src_info, 0, sizeof(rga_info_t));
-  memset(&dst_info, 0, sizeof(rga_info_t));
+bool RKJPEGDecoder::mppFrame2RGB(const MppFrame frame, uint8_t *data) {
   int width = mpp_frame_get_width(frame);
   int height = mpp_frame_get_height(frame);
   MppBuffer buffer = mpp_frame_get_buffer(frame);
@@ -122,6 +134,21 @@ bool RKMjpegDecoder::mppFrame2RGB(const MppFrame frame, uint8_t *data) {
   CHECK_EQ(height, height_);
   memset(data, 0, width * height * 3);
   auto buffer_ptr = mpp_buffer_get_ptr(buffer);
+#if defined(USE_LIBYUV)
+  auto *y = (const uint8_t *)buffer_ptr;
+  auto *uv = y + width * height;
+  int ret = libyuv::NV12ToRGB24(y, width, uv, width, data, width * 3, width, height);
+  if (ret) {
+    RCLCPP_ERROR_STREAM(rclcpp::get_logger("rk_mpp_decoder"), "libyuv error " << ret);
+    return false;
+  }
+  return true;
+#else
+  rga_info_t src_info;
+  rga_info_t dst_info;
+  // NOTE: memset to zero is MUST
+  memset(&src_info, 0, sizeof(rga_info_t));
+  memset(&dst_info, 0, sizeof(rga_info_t));
   src_info.fd = -1;
   src_info.mmuFlag = 1;
   src_info.virAddr = buffer_ptr;
@@ -129,9 +156,9 @@ bool RKMjpegDecoder::mppFrame2RGB(const MppFrame frame, uint8_t *data) {
   dst_info.fd = -1;
   dst_info.mmuFlag = 1;
   dst_info.virAddr = data;
-  dst_info.format = RK_FORMAT_RGB_888;
+  dst_info.format = RK_FORMAT_BGR_888;
   rga_set_rect(&src_info.rect, 0, 0, width, height, width, height, RK_FORMAT_YCbCr_420_SP);
-  rga_set_rect(&dst_info.rect, 0, 0, width, height, width, height, RK_FORMAT_RGB_888);
+  rga_set_rect(&dst_info.rect, 0, 0, width, height, width, height, RK_FORMAT_BGR_888);
   int ret = c_RkRgaBlit(&src_info, &dst_info, nullptr);
   if (ret) {
     RCLCPP_ERROR_STREAM(rclcpp::get_logger("rk_mpp_decoder"),
@@ -139,9 +166,10 @@ bool RKMjpegDecoder::mppFrame2RGB(const MppFrame frame, uint8_t *data) {
     return false;
   }
   return true;
+#endif
 }
 
-bool RKMjpegDecoder::decode(const std::shared_ptr<ob::ColorFrame> &frame, uint8_t *dest) {
+bool RKJPEGDecoder::decode(const std::shared_ptr<ob::ColorFrame> &frame, uint8_t *dest) {
   MPP_RET ret = MPP_OK;
   memset(data_buffer_, 0, width_ * height_ * 3);
   memcpy(data_buffer_, frame->data(), frame->dataSize());

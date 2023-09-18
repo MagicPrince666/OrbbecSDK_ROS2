@@ -1,14 +1,18 @@
-/**************************************************************************/
-/*                                                                        */
-/* Copyright (c) 2013-2022 Orbbec 3D Technology, Inc                      */
-/*                                                                        */
-/* PROPRIETARY RIGHTS of Orbbec 3D Technology are involved in the         */
-/* subject matter of this material. All manufacturing, reproduction, use, */
-/* and sales rights pertaining to this subject matter are governed by the */
-/* license agreement. The recipient of this software implicitly accepts   */
-/* the terms of the license.                                              */
-/*                                                                        */
-/**************************************************************************/
+/*******************************************************************************
+* Copyright (c) 2023 Orbbec 3D Technology, Inc
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*******************************************************************************/
 
 #pragma once
 
@@ -19,7 +23,7 @@
 
 #define OB_ROS_MAJOR_VERSION 1
 #define OB_ROS_MINOR_VERSION 3
-#define OB_ROS_PATCH_VERSION 0
+#define OB_ROS_PATCH_VERSION 4
 
 #ifndef STRINGIFY
 #define STRINGIFY(arg) #arg
@@ -106,7 +110,6 @@ const int32_t OPENNI_END_PID = 0x06FF;
 const int32_t ASTRA_MINI_PID = 0x0404;
 const int32_t ASTRA_MINI_S_PID = 0x0407;
 const int GEMINI2_PID = 0x0670;
-const std::string DEFAULT_SEM_NAME = "orbbec_device_sem";
-const key_t DEFAULT_SEM_KEY = 0x0401;
+const std::string ORB_DEFAULT_LOCK_NAME = "orbbec_device_lock";
 
 }  // namespace orbbec_camera

@@ -47,6 +47,14 @@ def generate_launch_description():
         DeclareLaunchArgument('ir_qos', default_value='default'),
         DeclareLaunchArgument('ir_camera_info_qos', default_value='default'),
         DeclareLaunchArgument('enable_ir_auto_exposure', default_value='true'),
+        DeclareLaunchArgument('enable_accel', default_value='false'),
+        DeclareLaunchArgument('accel_rate', default_value='100hz'),
+        DeclareLaunchArgument('accel_range', default_value='4g'),
+        DeclareLaunchArgument('enable_gyro', default_value='false'),
+        DeclareLaunchArgument('gyro_rate', default_value='100hz'),
+        DeclareLaunchArgument('gyro_range', default_value='1000dps'),
+        DeclareLaunchArgument('liner_accel_cov', default_value='0.01'),
+        DeclareLaunchArgument('angular_vel_cov', default_value='0.01'),
         DeclareLaunchArgument('publish_tf', default_value='true'),
         DeclareLaunchArgument('tf_publish_rate', default_value='10.0'),
         DeclareLaunchArgument('ir_info_url', default_value=''),
@@ -59,9 +67,6 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_soft_filter', default_value='true'),
         DeclareLaunchArgument('soft_filter_max_diff', default_value='-1'),
         DeclareLaunchArgument('soft_filter_speckle_size', default_value='-1'),
-        DeclareLaunchArgument('jpeg_decoder', default_value='avdec_mjpeg'),
-        DeclareLaunchArgument('video_convert', default_value='videoconvert'),
-        DeclareLaunchArgument('jpeg_parse', default_value='jpegparse'),
     ]
 
     # Node configuration
