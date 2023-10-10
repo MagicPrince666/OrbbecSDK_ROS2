@@ -1,5 +1,5 @@
 # orbbec_camera
-[![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges) ![version](https://img.shields.io/badge/version-1.3.5-green)
+[![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges) ![version](https://img.shields.io/badge/version-1.3.6-green)
 ---
 OrbbecSDK ROS2 is a wrapper for the Orbbec 3D camera that provides seamless integration with the ROS2 environment. It
 supports ROS2 Foxy, Galactic, and Humble distributions.
@@ -30,7 +30,7 @@ Get source code
 
 ```bash
 cd ~/ros2_ws/src
-git clone https://github.com/OrbbecDeveloper/OrbbecSDK_ROS2.git
+git clone https://github.com/orbbec/OrbbecSDK_ROS2.git
 ```
 
 Install deb dependencies

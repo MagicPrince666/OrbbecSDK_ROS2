@@ -18,7 +18,7 @@ def generate_launch_description():
         DeclareLaunchArgument('vendor_id', default_value='0x2bc5'),
         DeclareLaunchArgument('product_id', default_value=''),
         DeclareLaunchArgument('enable_point_cloud', default_value='true'),
-        DeclareLaunchArgument('enable_colored_point_cloud', default_value='false'),
+        DeclareLaunchArgument('enable_colored_point_cloud', default_value='true'),
         DeclareLaunchArgument('point_cloud_qos', default_value='default'),
         DeclareLaunchArgument('connection_delay', default_value='100'),
         DeclareLaunchArgument('color_width', default_value='640'),
@@ -73,6 +73,7 @@ def generate_launch_description():
         DeclareLaunchArgument('trigger2image_delay_us', default_value='0'),
         DeclareLaunchArgument('trigger_signal_output_delay_us', default_value='0'),
         DeclareLaunchArgument('trigger_signal_output_enabled', default_value='false'),
+        DeclareLaunchArgument('enable_frame_sync', default_value='true'),
     ]
 
     # Node configuration
