@@ -59,6 +59,7 @@ def generate_launch_description():
         DeclareLaunchArgument('tf_publish_rate', default_value='10.0'),
         DeclareLaunchArgument('ir_info_url', default_value=''),
         DeclareLaunchArgument('color_info_url', default_value=''),
+        DeclareLaunchArgument('enumerate_net_device', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='none'),
         DeclareLaunchArgument('enable_publish_extrinsic', default_value='false'),
         DeclareLaunchArgument('enable_d2c_viewer', default_value='false'),
@@ -67,6 +68,12 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_soft_filter', default_value='true'),
         DeclareLaunchArgument('soft_filter_max_diff', default_value='-1'),
         DeclareLaunchArgument('soft_filter_speckle_size', default_value='-1'),
+        DeclareLaunchArgument('sync_mode', default_value='free_run'),
+        DeclareLaunchArgument('depth_delay_us', default_value='0'),
+        DeclareLaunchArgument('color_delay_us', default_value='0'),
+        DeclareLaunchArgument('trigger2image_delay_us', default_value='0'),
+        DeclareLaunchArgument('trigger_out_delay_us', default_value='0'),
+        DeclareLaunchArgument('trigger_out_enabled', default_value='false'),
         DeclareLaunchArgument('enable_frame_sync', default_value='true'),
     ]
 

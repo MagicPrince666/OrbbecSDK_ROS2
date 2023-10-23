@@ -1,18 +1,18 @@
 /*******************************************************************************
-* Copyright (c) 2023 Orbbec 3D Technology, Inc
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*******************************************************************************/
+ * Copyright (c) 2023 Orbbec 3D Technology, Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 #pragma once
 
@@ -136,6 +136,11 @@ class OBCameraNode {
 
   void clean();
 
+  void startStreams();
+  
+  void startIMU();
+
+
  private:
   struct IMUData {
     IMUData() = default;
@@ -158,10 +163,6 @@ class OBCameraNode {
   void setupPipelineConfig();
 
   void setupCameraCtrlServices();
-
-  void startStreams();
-
-  void startIMU();
 
   void stopStreams();
 
@@ -402,8 +403,8 @@ class OBCameraNode {
   int depth_delay_us_ = 0;
   int color_delay_us_ = 0;
   int trigger2image_delay_us_ = 0;
-  int trigger_signal_output_delay_us_ = 0;
-  bool trigger_signal_output_enabled_ = false;
+  int trigger_out_delay_us_ = 0;
+  bool trigger_out_enabled_ = false;
   std::string depth_precision_str_;
   OB_DEPTH_PRECISION_LEVEL depth_precision_ = OB_PRECISION_0MM8;
   // IMU
@@ -420,5 +421,6 @@ class OBCameraNode {
   std::shared_ptr<JPEGDecoder> jpeg_decoder_ = nullptr;
   uint8_t* rgb_buffer_ = nullptr;
   bool is_color_frame_decoded_ = false;
+  std::mutex device_lock_;
 };
 }  // namespace orbbec_camera

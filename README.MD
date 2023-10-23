@@ -335,6 +335,37 @@ The following are the launch parameters available:
 - `gyro_range` : The range of the gyroscope, the optional values
   are `16dps`,`31dps`,`62dps`,`125dps`,`250dps`,`500dps`,`1000dps`,`2000dps`. The specific value depends on the current
   camera.
+- `enumerate_net_device` : Whether to enable the function of enumerating network devices. True means enabled, false means disabled.
+  This feature is only supported by Femto Mega and Gemini 2 XL devices. When accessing these devices through the network, the IP address of the device needs to be configured in advance. The enable switch needs to be set to true.
+
+## Depth work mode switch
+- Before starting the camera, depth work mode (depth_work_mode) can be configured for the corresponding xxx.launch.py file's support.
+- The depth work mode switch is supported by Gemini 2, Gemini 2 L, and Gemini 2 XL cameras.
+- The default depth work mode configuration of xxx.launch.py is the camera's default configuration. If you need to modify it, you can switch to the corresponding mode as needed.
+- The specific camera depth work mode support types can be found in the comments of the depth mode.
+
+```python
+    # Depth work mode support is as follows:
+    # Unbinned Dense Default
+    # Unbinned Sparse Default
+    # Binned Sparse Default
+    DeclareLaunchArgument('depth_work_mode', default_value='')
+```
+
+- View depth work modes:
+
+```bash
+ros2 run orbbec_camera list_depth_work_mode_node
+```
+
+## Configuration of depth NFOV and WFOV modes
+For the Femto Mega and Femto Bolt devices, the NFOV and WFOV modes are implemented by configuring the resolution of Depth and IR in the launch file. 
+In launch file, depth_width、depth_height、ir_width、ir_height represents the resolution of the depth  and the resolution of the IR.
+The frame fps and resolution of IR must be consistent with the depth. The correspondence between different modes and resolutions is as follows:
+- NFOV unbinned: 640 x 576.
+- NFOV binned: 320 x 288.
+- WFOV unbinned: 1024 x 1024.
+- WFOV binned: 512 x 512.
 
 ## Check which profiles the camera supports
 
@@ -359,6 +390,7 @@ The following are the launch parameters available:
 | deeya                                        | deeya.launch.py         |
 | femto  /femto w                              | femto.launch.py         |
 | femto mega                                   | femto_mega.launch.py    |
+| femto bolt                                   | femto_bolt.launch.py    |
 | gemini                                       | gemini.launch.py        |
 | gemini                                       | gemini.launch.py        |
 | gemini2 / dabai DCL                          | gemini2.launch.py       |
@@ -372,7 +404,7 @@ Actually, All launch files all most the same, the only difference is the default
 
 | **SDK version** | **products list** | **firmware version**                      |
 |-----------------|-------------------|-------------------------------------------|
-| v1.7.2          | Gemini 2 XL       | Obox: V1.2.5  VL:1.4.54                   |
+| v1.8.1          | Gemini 2 XL       | Obox: V1.2.5  VL:1.4.54                   |
 |                 | Astra 2           | 2.8.20                                    |
 |                 | Gemini 2 L        | 1.4.32                                    |
 |                 | Gemini 2          | 1.4.60 /1.4.76                            |
@@ -380,6 +412,7 @@ Actually, All launch files all most the same, the only difference is the default
 |                 | Astra+            | 1.0.22/1.0.21/1.0.20/1.0.19               |
 |                 | Femto             | 1.6.7                                     |
 |                 | Femto W           | 1.1.8                                     |
+|                 | Femto Bolt        | 1.0.6 (unsupported ARNM32)                |
 |                 | DaBai             | 2436                                      |
 |                 | DaBai DCW         | 2460                                      |
 |                 | DaBai DW          | 2606                                      |

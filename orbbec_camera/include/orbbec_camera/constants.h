@@ -23,7 +23,7 @@
 
 #define OB_ROS_MAJOR_VERSION 1
 #define OB_ROS_MINOR_VERSION 3
-#define OB_ROS_PATCH_VERSION 6
+#define OB_ROS_PATCH_VERSION 8
 
 #ifndef STRINGIFY
 #define STRINGIFY(arg) #arg
@@ -101,6 +101,7 @@ const std::string DEFAULT_D2C_MODE = "sw";  // sw = software mode, hw=hardware m
 const float ROS_DEPTH_SCALE = 0.001;
 
 const int32_t FEMTO_OW_PID = 0x0638;
+const int32_t FEMTO_BOLT_PID = 0x066b;
 const int32_t FEMTO_LIVE_PID = 0x0668;
 const int32_t FEMTO_PID = 0x0635;
 const int32_t ASTRA_PLUS_PID = 0x0636;

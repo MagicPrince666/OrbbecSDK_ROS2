@@ -22,8 +22,8 @@ def generate_launch_description():
         DeclareLaunchArgument('point_cloud_qos', default_value='default'),
         DeclareLaunchArgument('connection_delay', default_value='100'),
         DeclareLaunchArgument('color_width', default_value='640'),
-        DeclareLaunchArgument('color_height', default_value='480'),
-        DeclareLaunchArgument('color_fps', default_value='30'),
+        DeclareLaunchArgument('color_height', default_value='360'),
+        DeclareLaunchArgument('color_fps', default_value='15'),
         DeclareLaunchArgument('color_format', default_value='MJPG'),
         DeclareLaunchArgument('enable_color', default_value='true'),
         DeclareLaunchArgument('flip_color', default_value='false'),
@@ -32,7 +32,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_color_auto_exposure', default_value='true'),
         DeclareLaunchArgument('depth_width', default_value='640'),
         DeclareLaunchArgument('depth_height', default_value='400'),
-        DeclareLaunchArgument('depth_fps', default_value='30'),
+        DeclareLaunchArgument('depth_fps', default_value='15'),
         DeclareLaunchArgument('depth_format', default_value='Y14'),
         DeclareLaunchArgument('enable_depth', default_value='true'),
         DeclareLaunchArgument('flip_depth', default_value='false'),
@@ -40,7 +40,7 @@ def generate_launch_description():
         DeclareLaunchArgument('depth_camera_info_qos', default_value='default'),
         DeclareLaunchArgument('ir_width', default_value='640'),
         DeclareLaunchArgument('ir_height', default_value='400'),
-        DeclareLaunchArgument('ir_fps', default_value='30'),
+        DeclareLaunchArgument('ir_fps', default_value='15'),
         DeclareLaunchArgument('ir_format', default_value='Y8'),
         DeclareLaunchArgument('enable_ir', default_value='true'),
         DeclareLaunchArgument('flip_ir', default_value='false'),
@@ -67,12 +67,17 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_soft_filter', default_value='true'),
         DeclareLaunchArgument('soft_filter_max_diff', default_value='-1'),
         DeclareLaunchArgument('soft_filter_speckle_size', default_value='-1'),
+        # Depth work mode support is as follows:
+        # Unbinned Dense Default
+        # Unbinned Sparse Default
+        # Binned Sparse Default
+        DeclareLaunchArgument('depth_work_mode', default_value=''),
         DeclareLaunchArgument('sync_mode', default_value='free_run'),
         DeclareLaunchArgument('depth_delay_us', default_value='0'),
         DeclareLaunchArgument('color_delay_us', default_value='0'),
         DeclareLaunchArgument('trigger2image_delay_us', default_value='0'),
-        DeclareLaunchArgument('trigger_signal_output_delay_us', default_value='0'),
-        DeclareLaunchArgument('trigger_signal_output_enabled', default_value='false'),
+        DeclareLaunchArgument('trigger_out_delay_us', default_value='0'),
+        DeclareLaunchArgument('trigger_out_enabled', default_value='false'),
         DeclareLaunchArgument('enable_frame_sync', default_value='true'),
     ]
 

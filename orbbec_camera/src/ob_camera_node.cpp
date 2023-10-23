@@ -57,7 +57,6 @@ OBCameraNode::OBCameraNode(rclcpp::Node *node, std::shared_ptr<ob::Device> devic
 #elif defined(USE_NV_HW_DECODER)
   jpeg_decoder_ = std::make_unique<JetsonNvJPEGDecoder>(width_[COLOR], height_[COLOR]);
 #endif
-  startStreams();
   if (enable_d2c_viewer_) {
     auto rgb_qos = getRMWQosProfileFromString(image_qos_[COLOR]);
     auto depth_qos = getRMWQosProfileFromString(image_qos_[DEPTH]);
@@ -86,13 +85,15 @@ void OBCameraNode::setAndGetNodeParameter(
 OBCameraNode::~OBCameraNode() { clean(); }
 
 void OBCameraNode::clean() {
+  std::lock_guard<decltype(device_lock_)> lock(device_lock_);
   RCLCPP_WARN_STREAM(logger_, "Do destroy ~OBCameraNode");
   is_running_.store(false);
-  if (tf_thread_->joinable()) {
+  if (tf_thread_ && tf_thread_->joinable()) {
     tf_thread_->join();
   }
   RCLCPP_WARN_STREAM(logger_, "stop streams");
   stopStreams();
+  stopIMU();
   RCLCPP_WARN_STREAM(logger_, "Destroy ~OBCameraNode DONE");
   if (rgb_buffer_) {
     delete[] rgb_buffer_;
@@ -137,8 +138,8 @@ void OBCameraNode::setupDevices() {
       sync_config.depthDelayUs = depth_delay_us_;
       sync_config.colorDelayUs = color_delay_us_;
       sync_config.trigger2ImageDelayUs = trigger2image_delay_us_;
-      sync_config.triggerSignalOutputDelayUs = trigger_signal_output_delay_us_;
-      sync_config.triggerSignalOutputEnable = trigger_signal_output_enabled_;
+      sync_config.triggerOutDelayUs = trigger_out_delay_us_;
+      sync_config.triggerOutEnable = trigger_out_enabled_;
       device_->setMultiDeviceSyncConfig(sync_config);
     }
     if (info->pid() == GEMINI2_PID) {
@@ -252,17 +253,19 @@ void OBCameraNode::startStreams() {
     pipeline_->start(pipeline_config_, [this](const std::shared_ptr<ob::FrameSet> &frame_set) {
       onNewFrameSetCallback(frame_set);
     });
+  } catch (...) {
+    RCLCPP_ERROR_STREAM(logger_, "Failed to start pipeline");
+    throw std::runtime_error("Failed to start pipeline");
   }
   if (enable_frame_sync_) {
     pipeline_->enableFrameSync();
   }
   pipeline_started_.store(true);
-  startIMU();
 }
 
 void OBCameraNode::startIMU() {
   for (const auto &stream_index : HID_STREAMS) {
-    if (enable_stream_[stream_index]) {
+    if (enable_stream_[stream_index] && !imu_started_[stream_index]) {
       CHECK(sensors_.count(stream_index));
       auto profile_list = sensors_[stream_index]->getStreamProfileList();
       for (size_t i = 0; i < profile_list->count(); i++) {
@@ -314,7 +317,6 @@ void OBCameraNode::stopStreams() {
   }
   try {
     pipeline_->stop();
-    stopIMU();
   } catch (const ob::Error &e) {
     RCLCPP_ERROR_STREAM(logger_, "Failed to stop pipeline: " << e.getMessage());
   }
@@ -436,8 +438,8 @@ void OBCameraNode::getParameters() {
   setAndGetNodeParameter(depth_delay_us_, "depth_delay_us", 0);
   setAndGetNodeParameter(color_delay_us_, "color_delay_us", 0);
   setAndGetNodeParameter(trigger2image_delay_us_, "trigger2image_delay_us", 0);
-  setAndGetNodeParameter(trigger_signal_output_delay_us_, "trigger_signal_output_delay_us", 0);
-  setAndGetNodeParameter(trigger_signal_output_enabled_, "trigger_signal_output_enabled", false);
+  setAndGetNodeParameter(trigger_out_delay_us_, "trigger_out_delay_us", 0);
+  setAndGetNodeParameter(trigger_out_enabled_, "trigger_out_enabled", false);
   setAndGetNodeParameter<std::string>(depth_precision_str_, "depth_precision", "1mm");
   std::transform(sync_mode_str_.begin(), sync_mode_str_.end(), sync_mode_str_.begin(), ::toupper);
   sync_mode_ = OBSyncModeFromString(sync_mode_str_);
@@ -466,7 +468,14 @@ void OBCameraNode::setupPipelineConfig() {
   }
   pipeline_config_ = std::make_shared<ob::Config>();
   if (depth_registration_ && enable_stream_[COLOR] && enable_stream_[DEPTH]) {
-    pipeline_config_->setAlignMode(ALIGN_D2C_HW_MODE);
+    auto info = device_->getDeviceInfo();
+    if (info->pid() == FEMTO_BOLT_PID) {
+      RCLCPP_INFO_STREAM(logger_, "set align mode ALIGN_D2C_SW_MODE.");
+      pipeline_config_->setAlignMode(ALIGN_D2C_SW_MODE);
+    } else {
+      RCLCPP_INFO_STREAM(logger_, "set align mode ALIGN_D2C_HW_MODE.");
+      pipeline_config_->setAlignMode(ALIGN_D2C_HW_MODE);
+    }
   }
   for (const auto &stream_index : IMAGE_STREAMS) {
     if (enable_stream_[stream_index]) {
@@ -742,6 +751,10 @@ void OBCameraNode::publishColoredPointCloud(const std::shared_ptr<ob::FrameSet> 
 }
 
 void OBCameraNode::onNewFrameSetCallback(const std::shared_ptr<ob::FrameSet> &frame_set) {
+  if (!is_running_.load()) {
+    return;
+  }
+  std::lock_guard<decltype(device_lock_)> lock(device_lock_);
   if (frame_set == nullptr) {
     return;
   }
@@ -795,6 +808,9 @@ std::shared_ptr<ob::Frame> OBCameraNode::softwareDecodeColorFrame(
 bool OBCameraNode::decodeColorFrameToBuffer(const std::shared_ptr<ob::Frame> &frame,
                                             uint8_t *buffer) {
   if (frame == nullptr) {
+    return false;
+  }
+  if (!rgb_buffer_) {
     return false;
   }
   bool has_subscriber = image_publishers_[COLOR].getNumSubscribers() > 0;
@@ -871,13 +887,7 @@ void OBCameraNode::onNewFrameCallback(const std::shared_ptr<ob::Frame> &frame,
   int height = static_cast<int>(video_frame->height());
 
   auto timestamp = frameTimeStampToROSTime(video_frame->systemTimeStamp());
-  if (!camera_param_ && depth_registration_) {
-    camera_param_ = pipeline_->getCameraParam();
-  } else if (!camera_param_ && stream_index == COLOR) {
-    camera_param_ = getColorCameraParam();
-  } else if (!camera_param_ && (stream_index == DEPTH || stream_index == INFRA0)) {
-    camera_param_ = getDepthCameraParam();
-  }
+  camera_param_ = pipeline_->getCameraParam();
   auto &intrinsic =
       stream_index == COLOR ? camera_param_->rgbIntrinsic : camera_param_->depthIntrinsic;
   auto &distortion =
@@ -887,6 +897,8 @@ void OBCameraNode::onNewFrameCallback(const std::shared_ptr<ob::Frame> &frame,
   auto camera_info = convertToCameraInfo(intrinsic, distortion, width);
   camera_info.header.stamp = timestamp;
   camera_info.header.frame_id = frame_id;
+  camera_info.width = width;
+  camera_info.height = height;
   CHECK(camera_info_publishers_.count(stream_index) > 0);
   camera_info_publishers_[stream_index]->publish(camera_info);
   auto &image = images_[stream_index];
