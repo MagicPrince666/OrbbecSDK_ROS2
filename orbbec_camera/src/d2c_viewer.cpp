@@ -30,7 +30,8 @@ D2CViewer::D2CViewer(rclcpp::Node* const node, rmw_qos_profile_t rgb_qos,
       node_, "depth/image_raw", depth_qos);
   sync_ = std::make_shared<message_filters::Synchronizer<MySyncPolicy>>(MySyncPolicy(10), *rgb_sub_,
                                                                         *depth_sub_);
-  sync_->setMaxIntervalDuration(rclcpp::Duration::from_seconds(1.0));  // 1s
+  // sync_->setMaxIntervalDuration(rclcpp::Duration::from_seconds(1.0));  // 1s
+  sync_->setMaxIntervalDuration(rclcpp::Duration(1,0));  // 1s
 
   using std::placeholders::_1;
   using std::placeholders::_2;
