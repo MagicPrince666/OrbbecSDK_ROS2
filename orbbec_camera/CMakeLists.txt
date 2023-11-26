@@ -22,6 +22,7 @@ if ($ENV{ROS_DISTRO} MATCHES "humble")
 elseif ($ENV{ROS_DISTRO} MATCHES "foxy")
   add_definitions(-DUSE_FOXY_VERSION)
 elseif ($ENV{ROS_DISTRO} MATCHES "dashing")
+  # find_package(magic_enum CONFIG REQUIRED)
   add_definitions(-DUSE_DASHING_VERSION)
 endif()
 

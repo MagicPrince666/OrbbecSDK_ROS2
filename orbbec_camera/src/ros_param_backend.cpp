@@ -15,21 +15,31 @@
 *******************************************************************************/
 
 #include "orbbec_camera/ros_param_backend.h"
+
 namespace orbbec_camera {
 ParametersBackend::ParametersBackend(rclcpp::Node *node)
     : node_(node), logger_(node_->get_logger()) {}
 
 ParametersBackend::~ParametersBackend() {
   if (ros_callback_) {
+#ifdef USE_DASHING_VERSION
+  // TO DO 适配dashing
+#else
     node_->remove_on_set_parameters_callback(
         (rclcpp::node_interfaces::OnSetParametersCallbackHandle *)(ros_callback_.get()));
+#endif
     ros_callback_.reset();
   }
 }
 
 void ParametersBackend::addOnSetParametersCallback(
     rclcpp::node_interfaces::NodeParametersInterface::OnParametersSetCallbackType callback) {
+#ifdef USE_DASHING_VERSION
+  // TO DO 适配dashing
+  if(callback) {}
+#else
   ros_callback_ = node_->add_on_set_parameters_callback(callback);
+#endif
 }
 
 }  // namespace orbbec_camera

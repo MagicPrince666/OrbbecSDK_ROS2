@@ -22,6 +22,9 @@
 
 #include "orbbec_camera/utils.h"
 #include <filesystem>
+#ifdef USE_DASHING_VERSION
+#include <experimental/filesystem>
+#endif
 
 #if defined(USE_RK_HW_DECODER)
 #include "orbbec_camera/rk_mpp_decoder.h"
