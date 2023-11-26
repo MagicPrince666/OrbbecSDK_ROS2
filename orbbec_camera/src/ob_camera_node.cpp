@@ -802,8 +802,10 @@ std::shared_ptr<ob::Frame> OBCameraNode::softwareDecodeColorFrame(
   }
   auto color_frame = format_convert_filter_.process(frame);
   if (color_frame == nullptr) {
+#ifndef USE_DASHING_VERSION
     RCLCPP_ERROR_SKIPFIRST_THROTTLE(logger_, *(node_->get_clock()), 1000,
                                     "Failed to convert frame to RGB format");
+#endif
     return nullptr;
   }
   return color_frame;

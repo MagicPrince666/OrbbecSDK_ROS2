@@ -221,8 +221,10 @@ std::shared_ptr<ob::Device> OBCameraNodeDriver::selectDevice(
     device = selectDeviceByUSBPort(list, usb_port_);
   }
   if (device == nullptr) {
+#ifndef USE_DASHING_VERSION
     RCLCPP_WARN_THROTTLE(logger_, *get_clock(), 1000, "Device with serial number %s not found",
                          serial_number_.c_str());
+#endif
     device_connected_ = false;
     return nullptr;
   }
@@ -251,15 +253,19 @@ std::shared_ptr<ob::Device> OBCameraNodeDriver::selectDeviceBySerialNumber(
         }
       } else {
         std::string sn = list->serialNumber(i);
+#ifndef USE_DASHING_VERSION
         RCLCPP_INFO_STREAM_THROTTLE(logger_, *get_clock(), 1000, "Device serial number: " << sn);
+#endif
         if (sn == serial_number) {
           RCLCPP_INFO_STREAM(logger_, "Device serial number " << sn << " matched");
           return list->getDevice(i);
         }
       }
     } catch (ob::Error &e) {
+#ifndef USE_DASHING_VERSION
       RCLCPP_ERROR_STREAM_THROTTLE(logger_, *get_clock(), 1000,
                                    "Failed to get device info " << e.getMessage());
+#endif
     } catch (std::exception &e) {
       RCLCPP_ERROR_STREAM(logger_, "Failed to get device info " << e.what());
     } catch (...) {
@@ -332,8 +338,10 @@ void OBCameraNodeDriver::startDevice(const std::shared_ptr<ob::DeviceList> &list
   try {
     auto device = selectDevice(list);
     if (device == nullptr) {
+#ifndef USE_DASHING_VERSION
       RCLCPP_WARN_THROTTLE(logger_, *get_clock(), 1000, "Device with serial number %s not found",
                            serial_number_.c_str());
+#endif
       device_connected_ = false;
       return;
     }
