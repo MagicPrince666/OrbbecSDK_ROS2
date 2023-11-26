@@ -122,9 +122,11 @@ void OBCameraNode::setupDevices() {
 
   for (const auto &[stream_index, enable] : enable_stream_) {
     if (enable && sensors_.find(stream_index) == sensors_.end()) {
+#ifndef USE_DASHING_VERSION
       RCLCPP_INFO_STREAM(logger_,
                          magic_enum::enum_name(stream_index.first)
                              << "sensor isn't supported by current device! -- Skipping...");
+#endif
       enable_stream_[stream_index] = false;
     }
   }
@@ -634,11 +636,19 @@ void OBCameraNode::publishDepthPointCloud(const std::shared_ptr<ob::FrameSet> &f
     auto now = std::time(nullptr);
     std::stringstream ss;
     ss << std::put_time(std::localtime(&now), "%Y%m%d_%H%M%S");
+#ifdef USE_DASHING_VERSION
+    auto current_path = std::experimental::filesystem::current_path().string();
+    std::string filename = current_path + "/point_cloud/points_" + ss.str() + ".ply";
+    if (!std::experimental::filesystem::exists(current_path + "/point_cloud")) {
+      std::experimental::filesystem::create_directory(current_path + "/point_cloud");
+    }
+#else
     auto current_path = std::filesystem::current_path().string();
     std::string filename = current_path + "/point_cloud/points_" + ss.str() + ".ply";
     if (!std::filesystem::exists(current_path + "/point_cloud")) {
       std::filesystem::create_directory(current_path + "/point_cloud");
     }
+#endif
     RCLCPP_INFO_STREAM(logger_, "Saving point cloud to " << filename);
     saveDepthPointsToPly(point_cloud_msg_, filename);
   }
@@ -744,11 +754,19 @@ void OBCameraNode::publishColoredPointCloud(const std::shared_ptr<ob::FrameSet> 
     auto now = std::time(nullptr);
     std::stringstream ss;
     ss << std::put_time(std::localtime(&now), "%Y%m%d_%H%M%S");
+#ifdef USE_DASHING_VERSION
+    auto current_path = std::experimental::filesystem::current_path().string();
+    std::string filename = current_path + "/point_cloud/colored_points_" + ss.str() + ".ply";
+    if (!std::experimental::filesystem::exists(current_path + "/point_cloud")) {
+      std::experimental::filesystem::create_directory(current_path + "/point_cloud");
+    }
+#else
     auto current_path = std::filesystem::current_path().string();
     std::string filename = current_path + "/point_cloud/colored_points_" + ss.str() + ".ply";
     if (!std::filesystem::exists(current_path + "/point_cloud")) {
       std::filesystem::create_directory(current_path + "/point_cloud");
     }
+#endif
     RCLCPP_INFO_STREAM(logger_, "Saving point cloud to " << filename);
     saveRGBPointCloudMsgToPly(point_cloud_msg_, filename);
   }
@@ -946,6 +964,17 @@ void OBCameraNode::saveImageToFile(const stream_index_pair &stream_index, const 
     auto now = time(nullptr);
     std::stringstream ss;
     ss << std::put_time(localtime(&now), "%Y%m%d_%H%M%S");
+#ifdef USE_DASHING_VERSION
+    auto current_path = std::experimental::filesystem::current_path().string();
+    auto fps = fps_[stream_index];
+    std::string filename = current_path + "/image/" + stream_name_[stream_index] + "_" +
+                           std::to_string(image_msg->width) + "x" +
+                           std::to_string(image_msg->height) + "_" + std::to_string(fps) + "hz_" +
+                           ss.str() + ".png";
+    if (!std::experimental::filesystem::exists(current_path + "/image")) {
+      std::experimental::filesystem::create_directory(current_path + "/image");
+    }
+#else
     auto current_path = std::filesystem::current_path().string();
     auto fps = fps_[stream_index];
     std::string filename = current_path + "/image/" + stream_name_[stream_index] + "_" +
@@ -955,6 +984,7 @@ void OBCameraNode::saveImageToFile(const stream_index_pair &stream_index, const 
     if (!std::filesystem::exists(current_path + "/image")) {
       std::filesystem::create_directory(current_path + "/image");
     }
+#endif
     RCLCPP_INFO_STREAM(logger_, "Saving image to " << filename);
     if (stream_index.first == OB_STREAM_DEPTH) {
       auto image_to_save = cv_bridge::toCvCopy(image_msg, encoding_[stream_index])->image;

@@ -726,7 +726,9 @@ struct enable_if_enum {};
 template <typename R>
 struct enable_if_enum<true, R> {
   using type = R;
+#ifndef USE_DASHING_VERSION
   static_assert(supported<R>::value, "magic_enum unsupported compiler (https://github.com/Neargye/magic_enum#compiler-compatibility).");
+#endif
 };
 
 template <typename T, typename R, typename BinaryPredicate = std::equal_to<>, typename D = std::decay_t<T>>
