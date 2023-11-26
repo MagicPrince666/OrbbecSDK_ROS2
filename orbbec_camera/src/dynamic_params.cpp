@@ -14,6 +14,38 @@
 * limitations under the License.
 *******************************************************************************/
 #include "orbbec_camera/dynamic_params.h"
+#include <rclcpp/rclcpp.hpp>
+
+#ifdef USE_DASHING_VERSION
+#define RCLCPP_WARN_STREAM(logger, stream_arg) \
+  do { \
+    static_assert( \
+      ::std::is_same<typename std::remove_cv<typename std::remove_reference<decltype(logger)>::type>::type, \
+      typename ::rclcpp::Logger>::value, \
+      "First argument to logging macros must be an rclcpp::Logger"); \
+ \
+    std::stringstream rclcpp_stream_ss_; \
+    rclcpp_stream_ss_ << stream_arg; \
+    RCUTILS_LOG_WARN_NAMED( \
+      (logger).get_name(), \
+      "%s", rclcpp_stream_ss_.str().c_str()); \
+  } while (0)
+
+#define RCLCPP_ERROR_STREAM(logger, stream_arg) \
+  do { \
+    static_assert( \
+      ::std::is_same<typename std::remove_cv<typename std::remove_reference<decltype(logger)>::type>::type, \
+      typename ::rclcpp::Logger>::value, \
+      "First argument to logging macros must be an rclcpp::Logger"); \
+ \
+    std::stringstream rclcpp_stream_ss_; \
+    rclcpp_stream_ss_ << stream_arg; \
+    RCUTILS_LOG_ERROR_NAMED( \
+      (logger).get_name(), \
+      "%s", rclcpp_stream_ss_.str().c_str()); \
+  } while (0)
+
+#endif
 
 namespace orbbec_camera {
 
@@ -42,6 +74,9 @@ Parameters::Parameters(rclcpp::Node *node)
 
 Parameters::~Parameters() noexcept {
   for (auto const &param : param_functions_) {
+#ifdef USE_DASHING_VERSION
+    node_->undeclare_parameter(param.first);
+#else
     try {
       node_->undeclare_parameter(param.first);
     } catch (const rclcpp::exceptions::InvalidParameterTypeException &e) {
@@ -49,6 +84,7 @@ Parameters::~Parameters() noexcept {
     } catch (const std::exception &e) {
       RCLCPP_ERROR_STREAM(logger_, e.what());
     }
+#endif 
   }
 }
 

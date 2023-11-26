@@ -16,6 +16,15 @@ if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Werror -Wno-pedantic)
 endif ()
 
+message(STATUS "${LIB_NAME} Ros version : $ENV{ROS_DISTRO}")
+if ($ENV{ROS_DISTRO} MATCHES "humble")
+  add_definitions(-DUSE_HUMBLE_VERSION)
+elseif ($ENV{ROS_DISTRO} MATCHES "foxy")
+  add_definitions(-DUSE_FOXY_VERSION)
+elseif ($ENV{ROS_DISTRO} MATCHES "dashing")
+  add_definitions(-DUSE_DASHING_VERSION)
+endif()
+
 # find dependencies
 set(dependencies
   ament_cmake
