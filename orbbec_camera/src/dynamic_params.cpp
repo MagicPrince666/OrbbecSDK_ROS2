@@ -14,38 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 #include "orbbec_camera/dynamic_params.h"
-#include <rclcpp/rclcpp.hpp>
-
-#ifdef USE_DASHING_VERSION
-#define RCLCPP_WARN_STREAM(logger, stream_arg) \
-  do { \
-    static_assert( \
-      ::std::is_same<typename std::remove_cv<typename std::remove_reference<decltype(logger)>::type>::type, \
-      typename ::rclcpp::Logger>::value, \
-      "First argument to logging macros must be an rclcpp::Logger"); \
- \
-    std::stringstream rclcpp_stream_ss_; \
-    rclcpp_stream_ss_ << stream_arg; \
-    RCUTILS_LOG_WARN_NAMED( \
-      (logger).get_name(), \
-      "%s", rclcpp_stream_ss_.str().c_str()); \
-  } while (0)
-
-#define RCLCPP_ERROR_STREAM(logger, stream_arg) \
-  do { \
-    static_assert( \
-      ::std::is_same<typename std::remove_cv<typename std::remove_reference<decltype(logger)>::type>::type, \
-      typename ::rclcpp::Logger>::value, \
-      "First argument to logging macros must be an rclcpp::Logger"); \
- \
-    std::stringstream rclcpp_stream_ss_; \
-    rclcpp_stream_ss_ << stream_arg; \
-    RCUTILS_LOG_ERROR_NAMED( \
-      (logger).get_name(), \
-      "%s", rclcpp_stream_ss_.str().c_str()); \
-  } while (0)
-
-#endif
+#include "orbbec_camera/utils.h"
 
 namespace orbbec_camera {
 

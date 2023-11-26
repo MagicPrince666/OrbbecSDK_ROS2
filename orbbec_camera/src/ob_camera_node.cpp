@@ -15,6 +15,7 @@
  *******************************************************************************/
 
 #include "orbbec_camera/ob_camera_node.h"
+#include "orbbec_camera/utils.h"
 #include <rclcpp/rclcpp.hpp>
 #include <thread>
 #include <geometry_msgs/msg/transform_stamped.hpp>

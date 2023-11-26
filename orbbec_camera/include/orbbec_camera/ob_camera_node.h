@@ -40,10 +40,15 @@
 #include <std_srvs/srv/empty.hpp>
 
 #include <sensor_msgs/msg/camera_info.hpp>
+#ifdef USE_DASHING_VERSION
+#include <camera_info_manager/camera_info_manager.h>
+#include <image_transport/publisher.h>
+#else
 #include <camera_info_manager/camera_info_manager.hpp>
+#include <image_transport/publisher.hpp>
+#endif
 
 #include <image_publisher/image_publisher.hpp>
-#include <image_transport/publisher.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include "libobsensor/ObSensor.hpp"
 
