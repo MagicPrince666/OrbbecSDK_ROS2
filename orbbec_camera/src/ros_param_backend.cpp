@@ -31,7 +31,12 @@ ParametersBackend::~ParametersBackend() {
 }
 
 void ParametersBackend::addOnSetParametersCallback(
-    rclcpp::node_interfaces::NodeParametersInterface::OnParametersSetCallbackType callback) {
+#if defined(USE_IRON_VERSION)
+    rclcpp::node_interfaces::NodeParametersInterface::OnSetParametersCallbackType callback
+#else
+    rclcpp::node_interfaces::NodeParametersInterface::OnParametersSetCallbackType callback
+#endif
+) {
 #ifdef USE_DASHING_VERSION
   if(callback) {
     // 待适配
