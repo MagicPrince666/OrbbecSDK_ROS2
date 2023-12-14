@@ -28,7 +28,11 @@
 #include <vector>
 #include <atomic>
 #include <opencv2/opencv.hpp>
+#if defined(USE_IRON_VERSION)
 #include <cv_bridge/cv_bridge.hpp>
+#else
+#include <cv_bridge/cv_bridge.h>
+#endif
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <tf2_ros/static_transform_broadcaster.h>
