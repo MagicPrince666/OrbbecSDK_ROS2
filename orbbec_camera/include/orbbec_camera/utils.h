@@ -28,7 +28,7 @@
 #include "magic_enum/magic_enum.hpp"
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
-#ifdef USE_DASHING_VERSION
+#if defined(USE_ELOQUENT_VERSION) || defined(USE_DASHING_VERSION)
 #define RCLCPP_WARN_STREAM(logger, stream_arg) \
   do { \
     static_assert( \

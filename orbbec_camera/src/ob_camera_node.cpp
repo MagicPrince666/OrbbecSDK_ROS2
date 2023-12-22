@@ -22,7 +22,7 @@
 
 #include "orbbec_camera/utils.h"
 #include <filesystem>
-#ifdef USE_DASHING_VERSION
+#if defined(USE_ELOQUENT_VERSION) || defined(USE_DASHING_VERSION)
 #include <experimental/filesystem>
 #endif
 
@@ -122,7 +122,7 @@ void OBCameraNode::setupDevices() {
 
   for (const auto &[stream_index, enable] : enable_stream_) {
     if (enable && sensors_.find(stream_index) == sensors_.end()) {
-#ifndef USE_DASHING_VERSION
+#if !defined(USE_ELOQUENT_VERSION) || !defined(USE_DASHING_VERSION)
       RCLCPP_INFO_STREAM(logger_,
                          magic_enum::enum_name(stream_index.first)
                              << "sensor isn't supported by current device! -- Skipping...");
@@ -636,7 +636,7 @@ void OBCameraNode::publishDepthPointCloud(const std::shared_ptr<ob::FrameSet> &f
     auto now = std::time(nullptr);
     std::stringstream ss;
     ss << std::put_time(std::localtime(&now), "%Y%m%d_%H%M%S");
-#ifdef USE_DASHING_VERSION
+#if defined(USE_ELOQUENT_VERSION) || defined(USE_DASHING_VERSION)
     auto current_path = std::experimental::filesystem::current_path().string();
     std::string filename = current_path + "/point_cloud/points_" + ss.str() + ".ply";
     if (!std::experimental::filesystem::exists(current_path + "/point_cloud")) {
@@ -754,7 +754,7 @@ void OBCameraNode::publishColoredPointCloud(const std::shared_ptr<ob::FrameSet> 
     auto now = std::time(nullptr);
     std::stringstream ss;
     ss << std::put_time(std::localtime(&now), "%Y%m%d_%H%M%S");
-#ifdef USE_DASHING_VERSION
+#if defined(USE_ELOQUENT_VERSION) || defined(USE_DASHING_VERSION)
     auto current_path = std::experimental::filesystem::current_path().string();
     std::string filename = current_path + "/point_cloud/colored_points_" + ss.str() + ".ply";
     if (!std::experimental::filesystem::exists(current_path + "/point_cloud")) {
@@ -820,7 +820,7 @@ std::shared_ptr<ob::Frame> OBCameraNode::softwareDecodeColorFrame(
   }
   auto color_frame = format_convert_filter_.process(frame);
   if (color_frame == nullptr) {
-#ifndef USE_DASHING_VERSION
+#if !defined(USE_ELOQUENT_VERSION) || !defined(USE_DASHING_VERSION)
     RCLCPP_ERROR_SKIPFIRST_THROTTLE(logger_, *(node_->get_clock()), 1000,
                                     "Failed to convert frame to RGB format");
 #endif
@@ -964,7 +964,7 @@ void OBCameraNode::saveImageToFile(const stream_index_pair &stream_index, const 
     auto now = time(nullptr);
     std::stringstream ss;
     ss << std::put_time(localtime(&now), "%Y%m%d_%H%M%S");
-#ifdef USE_DASHING_VERSION
+#if defined(USE_ELOQUENT_VERSION) || defined(USE_DASHING_VERSION)
     auto current_path = std::experimental::filesystem::current_path().string();
     auto fps = fps_[stream_index];
     std::string filename = current_path + "/image/" + stream_name_[stream_index] + "_" +

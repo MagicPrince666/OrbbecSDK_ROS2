@@ -43,7 +43,7 @@ Parameters::Parameters(rclcpp::Node *node)
 
 Parameters::~Parameters() noexcept {
   for (auto const &param : param_functions_) {
-#ifdef USE_DASHING_VERSION
+#if defined(USE_ELOQUENT_VERSION) || defined(USE_DASHING_VERSION)
     node_->undeclare_parameter(param.first);
 #else
     try {
