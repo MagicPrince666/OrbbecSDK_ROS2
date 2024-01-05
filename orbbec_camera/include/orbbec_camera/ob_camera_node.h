@@ -283,11 +283,18 @@ class OBCameraNode {
 
   bool decodeColorFrameToBuffer(const std::shared_ptr<ob::Frame>& frame, uint8_t* buffer);
 
+  std::shared_ptr<ob::Frame> decodeIRMJPGFrame(const std::shared_ptr<ob::Frame>& frame);
+
   void onNewFrameCallback(const std::shared_ptr<ob::Frame>& frame,
                           const stream_index_pair& stream_index);
 
+  void onNewColorFrameCallback();
+
   void saveImageToFile(const stream_index_pair& stream_index, const cv::Mat& image,
                        const sensor_msgs::msg::Image::SharedPtr& image_msg);
+
+  void onNewIMUFrameSyncOutputCallback(const std::shared_ptr<ob::Frame>& accelframe,
+                                       const std::shared_ptr<ob::Frame>& gryoframe);
 
   void onNewIMUFrameCallback(const std::shared_ptr<ob::Frame>& frame,
                              const stream_index_pair& stream_index);
@@ -310,6 +317,7 @@ class OBCameraNode {
   rclcpp::Logger logger_;
   std::atomic_bool is_running_{false};
   std::unique_ptr<ob::Pipeline> pipeline_ = nullptr;
+  std::unique_ptr<ob::Pipeline> imuPipeline_ = nullptr;
   std::atomic_bool pipeline_started_{false};
   std::string camera_name_ = "camera";
   std::shared_ptr<ob::Config> pipeline_config_ = nullptr;
@@ -341,6 +349,7 @@ class OBCameraNode {
   ob::FormatConvertFilter format_convert_filter_;
 
   std::map<stream_index_pair, bool> enable_stream_;
+  std::map<stream_index_pair, bool> flip_stream_;
   std::map<stream_index_pair, std::string> stream_name_;
   std::map<stream_index_pair, image_transport::Publisher> image_publishers_;
   std::map<stream_index_pair, rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr>
@@ -368,6 +377,7 @@ class OBCameraNode {
   rclcpp::Service<SetInt32>::SharedPtr set_fan_work_mode_srv_;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr toggle_sensors_srv_;
 
+  bool enable_sync_output_accel_gyro_ = false;
   bool publish_tf_ = false;
   bool tf_published_ = false;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_ = nullptr;
@@ -397,6 +407,8 @@ class OBCameraNode {
   std::atomic_bool save_colored_point_cloud_{false};
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr save_images_srv_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr save_point_cloud_srv_;
+  std::string depth_filter_config_;
+  bool enable_depth_filter_ = false;
   bool enable_soft_filter_ = true;
   bool enable_color_auto_exposure_ = true;
   bool enable_ir_auto_exposure_ = true;
@@ -418,6 +430,8 @@ class OBCameraNode {
   OB_DEPTH_PRECISION_LEVEL depth_precision_ = OB_PRECISION_0MM8;
   // IMU
   std::map<stream_index_pair, rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr> imu_publishers_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_gyro_accel_publisher_;
+  bool imu_sync_output_start_ = false;
   std::map<stream_index_pair, std::string> imu_rate_;
   std::map<stream_index_pair, std::string> imu_range_;
   std::map<stream_index_pair, std::string> imu_qos_;
@@ -431,5 +445,12 @@ class OBCameraNode {
   uint8_t* rgb_buffer_ = nullptr;
   bool is_color_frame_decoded_ = false;
   std::mutex device_lock_;
+  //For color
+  std::queue<std::shared_ptr<ob::FrameSet>> colorFrameQueue_;
+  std::shared_ptr<std::thread> colorFrameThread_ = nullptr;
+  std::mutex colorFrameMtx_;
+  std::condition_variable colorFrameCV_;
+
+  bool ordered_pc_ = false;
 };
 }  // namespace orbbec_camera

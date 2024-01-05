@@ -5,6 +5,8 @@ from launch_ros.actions import PushRosNamespace
 from launch.actions import GroupAction
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from launch_ros.actions import Node
+import os
 
 
 def generate_launch_description():
@@ -47,6 +49,7 @@ def generate_launch_description():
         DeclareLaunchArgument('ir_qos', default_value='default'),
         DeclareLaunchArgument('ir_camera_info_qos', default_value='default'),
         DeclareLaunchArgument('enable_ir_auto_exposure', default_value='true'),
+        DeclareLaunchArgument('enable_sync_output_accel_gyro', default_value='true'),
         DeclareLaunchArgument('enable_accel', default_value='false'),
         DeclareLaunchArgument('accel_rate', default_value='100hz'),
         DeclareLaunchArgument('accel_range', default_value='4g'),
@@ -62,11 +65,9 @@ def generate_launch_description():
         DeclareLaunchArgument('log_level', default_value='none'),
         DeclareLaunchArgument('enable_publish_extrinsic', default_value='false'),
         DeclareLaunchArgument('enable_d2c_viewer', default_value='false'),
-        DeclareLaunchArgument('enable_soft_filter', default_value='true'),
         DeclareLaunchArgument('enable_ldp', default_value='true'),
-        DeclareLaunchArgument('enable_soft_filter', default_value='true'),
-        DeclareLaunchArgument('soft_filter_max_diff', default_value='-1'),
-        DeclareLaunchArgument('soft_filter_speckle_size', default_value='-1'),
+        # Configure the path for depth filter file, for example: /config/depthfilter/Gemini2_v1.7.json
+        DeclareLaunchArgument('depth_filter_config', default_value=''),
         # Depth work mode support is as follows:
         # Unbinned Dense Default
         # Unbinned Sparse Default
@@ -79,38 +80,55 @@ def generate_launch_description():
         DeclareLaunchArgument('trigger_out_delay_us', default_value='0'),
         DeclareLaunchArgument('trigger_out_enabled', default_value='false'),
         DeclareLaunchArgument('enable_frame_sync', default_value='true'),
+        DeclareLaunchArgument('ordered_pc', default_value='false'),
     ]
 
     # Node configuration
     parameters = [{arg.name: LaunchConfiguration(arg.name)} for arg in args]
+    # get  ROS_DISTRO
+    ros_distro = os.environ["ROS_DISTRO"]
+    if ros_distro == "foxy":
+        return LaunchDescription(
+            args
+            + [
+                Node(
+                    package="orbbec_camera",
+                    executable="orbbec_camera_node",
+                    name="ob_camera_node",
+                    namespace=LaunchConfiguration("camera_name"),
+                    parameters=parameters,
+                    output="screen",
+                )
+            ]
+        )
     # Define the ComposableNode
-    compose_node = ComposableNode(
-        package='orbbec_camera',
-        plugin='orbbec_camera::OBCameraNodeDriver',
-        name=LaunchConfiguration('camera_name'),
-        namespace='',
-        parameters=parameters,
-    )
-    # Define the ComposableNodeContainer
-    container = ComposableNodeContainer(
-        name='camera_container',
-        namespace='',
-        package='rclcpp_components',
-        executable='component_container',
-        composable_node_descriptions=[
-            compose_node,
-        ],
-        output='screen',
-    )
-
-    # Launch description
-    ld = LaunchDescription(
-        args +
-        [
-            GroupAction([
-                PushRosNamespace(LaunchConfiguration('camera_name')),
-                container
-            ])
-        ]
-    )
-    return ld
+    else:
+        # Define the ComposableNode
+        compose_node = ComposableNode(
+            package="orbbec_camera",
+            plugin="orbbec_camera::OBCameraNodeDriver",
+            name=LaunchConfiguration("camera_name"),
+            namespace="",
+            parameters=parameters,
+        )
+        # Define the ComposableNodeContainer
+        container = ComposableNodeContainer(
+            name="camera_container",
+            namespace="",
+            package="rclcpp_components",
+            executable="component_container",
+            composable_node_descriptions=[
+                compose_node,
+            ],
+            output="screen",
+        )
+        # Launch description
+        ld = LaunchDescription(
+            args
+            + [
+                GroupAction(
+                    [PushRosNamespace(LaunchConfiguration("camera_name")), container]
+                )
+            ]
+        )
+        return ld
