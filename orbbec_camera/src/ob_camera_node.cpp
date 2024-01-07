@@ -128,7 +128,7 @@ void OBCameraNode::setupDevices() {
 
   for (const auto &[stream_index, enable] : enable_stream_) {
     if (enable && sensors_.find(stream_index) == sensors_.end()) {
-#if !defined(USE_ELOQUENT_VERSION) || !defined(USE_DASHING_VERSION)
+#if !defined(USE_ELOQUENT_VERSION) && !defined(USE_DASHING_VERSION)
       RCLCPP_INFO_STREAM(logger_,
                          magic_enum::enum_name(stream_index.first)
                              << "sensor isn't supported by current device! -- Skipping...");
@@ -1014,7 +1014,7 @@ std::shared_ptr<ob::Frame> OBCameraNode::softwareDecodeColorFrame(
   }
   auto color_frame = format_convert_filter_.process(frame);
   if (color_frame == nullptr) {
-#if !defined(USE_ELOQUENT_VERSION) || !defined(USE_DASHING_VERSION)
+#if !defined(USE_ELOQUENT_VERSION) && !defined(USE_DASHING_VERSION)
     RCLCPP_ERROR_SKIPFIRST_THROTTLE(logger_, *(node_->get_clock()), 1000,
                                     "Failed to convert frame to RGB format");
 #endif

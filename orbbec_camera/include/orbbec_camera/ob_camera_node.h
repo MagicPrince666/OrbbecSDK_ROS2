@@ -44,7 +44,7 @@
 #include <std_srvs/srv/empty.hpp>
 
 #include <sensor_msgs/msg/camera_info.hpp>
-#ifdef USE_DASHING_VERSION
+#if defined(USE_ELOQUENT_VERSION) || defined(USE_DASHING_VERSION)
 #include <camera_info_manager/camera_info_manager.h>
 #include <image_transport/publisher.h>
 #else

@@ -22,7 +22,7 @@ ParametersBackend::ParametersBackend(rclcpp::Node *node)
 
 ParametersBackend::~ParametersBackend() {
   if (ros_callback_) {
-#if !defined(USE_ELOQUENT_VERSION) || !defined(USE_DASHING_VERSION)
+#if !defined(USE_ELOQUENT_VERSION) && !defined(USE_DASHING_VERSION)
     node_->remove_on_set_parameters_callback(
         (rclcpp::node_interfaces::OnSetParametersCallbackHandle *)(ros_callback_.get()));
 #endif
